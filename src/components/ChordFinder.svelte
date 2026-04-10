@@ -442,8 +442,9 @@
 <div class="page-root">
   {#if phase === 'browse'}
     <!-- ============ CHORD BROWSER PHASE ============ -->
-    <div class="browse-header no-print">
-      <div class="browse-filters">
+    <div class="browse-scroll-area">
+      <div class="browse-header no-print">
+        <div class="browse-filters">
         <div class="filter-row">
           <label class="filter-label">Search</label>
           <div class="filter-options">
@@ -579,6 +580,7 @@
     {#if filteredChordList.length === 0}
       <p class="no-match-msg">No chords match the current filters.</p>
     {/if}
+    </div>
 
   {:else}
     <!-- ============ VOICINGS PHASE ============ -->
@@ -931,10 +933,15 @@
   }
 
   /* === Browse phase === */
+  .browse-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding-right: 24px;
+  }
+
   .browse-header {
     margin-bottom: 12px;
-    flex-shrink: 0;
-    padding-right: 24px;
   }
 
   .browse-filters {
@@ -1091,19 +1098,13 @@
     font-size: 13px;
     color: var(--text-muted);
     margin-bottom: 10px;
-    flex-shrink: 0;
-    padding-right: 24px;
   }
 
   .chord-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 8px;
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
     padding: 2px;
-    padding-right: 24px;
     align-content: start;
   }
 
@@ -1591,12 +1592,8 @@
     }
     .chord-grid {
       grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      padding-right: 10px;
     }
-    .browse-header {
-      padding-right: 10px;
-    }
-    .chord-count {
+    .browse-scroll-area {
       padding-right: 10px;
     }
     .chord-info-bar {
