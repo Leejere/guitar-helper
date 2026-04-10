@@ -209,6 +209,13 @@
       }
     }
   });
+
+  // Auto-select first voicing when a position is selected
+  $effect(() => {
+    if (shapeResults.length > 0 && selectedResultIdx === null) {
+      selectedResultIdx = 0;
+    }
+  });
 </script>
 
 <div class="shape-explorer page-root">
