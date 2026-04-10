@@ -1313,6 +1313,8 @@
     font-size: 8px;
     color: var(--text-muted);
     text-align: center;
+    white-space: normal;
+    line-height: 1.2;
   }
 
   /* Voicing toolbar */
