@@ -238,7 +238,6 @@ button {
 }
 
 .github-link {
-  margin-left: auto;
   color: var(--text-muted);
   display: flex;
   align-items: center;
@@ -251,18 +250,19 @@ button {
 
 /* Home button */
 .home-button {
+  margin-left: auto;
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--accent);
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
-  transition: color 0.15s;
+  transition: opacity 0.15s;
 }
 
 .home-button:hover {
-  color: var(--text);
+  opacity: 0.7;
 }
 
 /* Home page */
