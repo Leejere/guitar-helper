@@ -1104,6 +1104,7 @@
     min-height: 0;
     padding: 2px;
     padding-right: 24px;
+    align-content: start;
   }
 
   .chord-card {
