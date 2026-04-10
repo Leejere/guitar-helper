@@ -1,0 +1,282 @@
+<script lang="ts">
+  import { Note, Interval } from 'tonal';
+  import Fretboard from './Fretboard.svelte';
+  import ChordDiagram from './ChordDiagram.svelte';
+  import { identifyChords, fretsToVoicing, displayAccidental, type ChordCandidate } from '../lib/music';
+  import { playStrum } from '../lib/audio';
+  import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
+  import { responsive } from '../lib/responsive.svelte';
+
+  // Fretboard SVG width (must match Fretboard.svelte defaults: leftPadding=50, fretSpacing=75, fretCount=15, rightPadding=20)
+  const FB_SVG_WIDTH = 50 + 16 * 75 + 20; // 1270
+
+  interface Props {
+    onChordSelect?: (chordName: string) => void;
+  }
+
+  let { onChordSelect }: Props = $props();
+
+  let selectedTuning = $state(STANDARD);
+  let selectedPositions: { string: number; fret: number }[] = $state([]);
+
+  const needsVertical = $derived(responsive.windowWidth < FB_SVG_WIDTH + 60);
+
+  function handleTuningChange(e: Event) {
+    const name = (e.target as HTMLSelectElement).value;
+    selectedTuning = ALL_TUNINGS.find(t => t.name === name) ?? STANDARD;
+    selectedPositions = [];
+  }
+
+  function handlePositionClick(stringIdx: number, fret: number) {
+    const existing = selectedPositions.findIndex(
+      p => p.string === stringIdx && p.fret === fret
+    );
+
+    if (existing !== -1) {
+      // Toggle off
+      selectedPositions = selectedPositions.filter((_, i) => i !== existing);
+    } else {
+      // Remove any existing selection on the same string, add new one
+      selectedPositions = [
+        ...selectedPositions.filter(p => p.string !== stringIdx),
+        { string: stringIdx, fret },
+      ];
+    }
+  }
+
+  function getSelectedNotes(): string[] {
+    return [...selectedPositions]
+      .sort((a, b) => a.string - b.string)
+      .map(p => Note.transpose(selectedTuning.notes[p.string], Interval.fromSemitones(p.fret)));
+  }
+
+  let candidates = $derived.by(() => {
+    if (selectedPositions.length < 2) return { exact: [] as ChordCandidate[], vague: [] as ChordCandidate[] };
+    const all = identifyChords(selectedPositions, selectedTuning.notes);
+    return {
+      exact: all.filter(c => c.exact),
+      vague: all.filter(c => !c.exact),
+    };
+  });
+
+  let selectedNoteNames = $derived.by(() => {
+    return getSelectedNotes().map(n => Note.pitchClass(n));
+  });
+
+  function clearSelection() {
+    selectedPositions = [];
+  }
+
+  async function handlePlay() {
+    const notes = getSelectedNotes();
+    if (notes.length > 0) {
+      await playStrum(notes);
+    }
+  }
+</script>
+
+<div class="page-root">
+  <div class="controls no-print">
+    <div class="control-group">
+      <label for="tuning-id">Tuning</label>
+      <select id="tuning-id" value={selectedTuning.name} onchange={handleTuningChange}>
+        {#each ALL_TUNINGS as t}
+          <option value={t.name}>{t.name}</option>
+        {/each}
+      </select>
+    </div>
+
+    <button class="btn btn-secondary" onclick={clearSelection}>Clear</button>
+    {#if selectedPositions.length > 0}
+      <button class="btn" onclick={handlePlay}>&#9654; Play</button>
+    {/if}
+  </div>
+
+  <p class="info-msg no-print">
+    Click on the fretboard to select where you press. One note per string. Unclicked strings are treated as open or muted.
+  </p>
+
+  <div class:mobile-id-layout={needsVertical} class:scroll-area={!needsVertical}>
+    <div class="fretboard-container" class:mobile-vertical={needsVertical}>
+      <div class="fretboard-scroll">
+        <Fretboard
+          tuning={selectedTuning}
+          fretCount={15}
+          mode="notes"
+          interactive={true}
+          {selectedPositions}
+          onPositionClick={handlePositionClick}
+          vertical={needsVertical}
+        />
+      </div>
+    </div>
+
+    {#if selectedPositions.length > 0}
+      <div class="results-section">
+        <p class="info-msg">
+          Selected notes: <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
+        </p>
+
+        {#if candidates.exact.length > 0}
+          <h3 class="results-heading">Matches</h3>
+          <div class="candidate-grid">
+            {#each candidates.exact as candidate}
+              <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name)}>
+                <span class="candidate-name">{displayAccidental(candidate.name)}</span>
+                <ChordDiagram
+                  voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
+                  tuning={selectedTuning}
+                  chordName={candidate.name}
+                />
+              </button>
+            {/each}
+          </div>
+        {/if}
+
+        {#if candidates.vague.length > 0}
+          <h3 class="results-heading">Related chords</h3>
+          <div class="candidate-grid">
+            {#each candidates.vague as candidate}
+              <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name)}>
+                <span class="candidate-name">{displayAccidental(candidate.name)}</span>
+                <ChordDiagram
+                  voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
+                  tuning={selectedTuning}
+                  chordName={candidate.name}
+                />
+              </button>
+            {/each}
+          </div>
+        {/if}
+
+        {#if candidates.exact.length === 0 && candidates.vague.length === 0 && selectedPositions.length >= 2}
+          <p class="info-msg" style="margin-top: 8px;">No chord match found for this combination.</p>
+        {/if}
+      </div>
+    {/if}
+  </div>
+</div>
+
+<style>
+  .page-root {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .page-root > :global(.controls) {
+    flex-shrink: 0;
+    padding-right: 24px;
+  }
+
+  .page-root > :global(.info-msg) {
+    flex-shrink: 0;
+    padding-right: 24px;
+  }
+
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+  }
+
+  .results-section {
+    margin-top: 16px;
+  }
+
+  .results-heading {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 16px 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .candidate-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .candidate-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, filter 0.15s;
+    font: inherit;
+    color: inherit;
+    min-width: 120px;
+  }
+
+  .candidate-card:hover {
+    border-color: var(--accent);
+    filter: brightness(1.1);
+  }
+
+  .candidate-card.vague {
+    opacity: 0.7;
+    border-style: dashed;
+  }
+
+  .candidate-card.vague:hover {
+    opacity: 1;
+  }
+
+  .candidate-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+
+  .mobile-id-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: center;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .mobile-id-layout .fretboard-container {
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .mobile-id-layout .results-section {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 200px;
+    margin-top: 0;
+  }
+
+  .mobile-id-layout .candidate-grid {
+    flex-direction: column;
+  }
+
+  .mobile-id-layout .candidate-card {
+    min-width: 0;
+    width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .page-root > :global(.controls) {
+      padding-right: 10px;
+    }
+    .page-root > :global(.info-msg) {
+      padding-right: 10px;
+    }
+  }
+</style>
