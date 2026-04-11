@@ -5,6 +5,7 @@
   import ShapeExplorer from './components/ShapeExplorer.svelte'
   import ProgressionBuilder from './components/ProgressionBuilder.svelte'
   import { progression } from './lib/progression.svelte'
+  import { toast } from './lib/toast.svelte'
   import type { CAGEDShape } from './lib/voicings'
 
   type Tab = 'home' | 'map' | 'finder' | 'identifier' | 'shapes' | 'progression';
@@ -35,6 +36,15 @@
   let shapeNavShape: CAGEDShape | undefined = $state(undefined);
   let shapeNavPosition: number | undefined = $state(undefined);
   let shapeNavVariantIdx: number | undefined = $state(undefined);
+
+  // Watch for pending navigation from ChordDiagram's add-to-cell flow
+  $effect(() => {
+    const nav = progression.pendingNav;
+    if (nav) {
+      activeTab = nav as Tab;
+      progression.pendingNav = null;
+    }
+  });
 
   function navigateToChord(chordName: string) {
     finderChord = chordName;
@@ -129,6 +139,10 @@
   </div>
 {/if}
 
+{#if toast.visible}
+  <div class="toast">{toast.message}</div>
+{/if}
+
 <style>
   .page-content {
     flex: 1;
@@ -137,5 +151,28 @@
     overflow: hidden;
     min-height: 0;
     padding-top: 16px;
+  }
+
+  .toast {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 14px;
+    z-index: 9999;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    animation: toast-in 0.2s ease-out;
+    white-space: nowrap;
+  }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
   }
 </style>

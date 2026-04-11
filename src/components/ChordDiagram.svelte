@@ -4,6 +4,7 @@
   import { playStrum } from '../lib/audio';
   import { pool } from '../lib/pool.svelte';
   import { progression } from '../lib/progression.svelte';
+  import { toast } from '../lib/toast.svelte';
   import type { Voicing } from '../lib/voicings';
   import type { Tuning } from '../lib/tunings';
 
@@ -32,15 +33,43 @@
 
   let poolKey = $derived(pool.keyFor(voicing.frets, chordName ?? ''));
   let isInPool = $derived(pool.entries.some(e => e.key === poolKey));
-  let isInProgression = $derived(progression.hasPoolKey(poolKey));
+  let isUsedInProgression = $derived(progression.hasPoolKey(poolKey));
 
-  function toggleProgression(e: MouseEvent) {
+  let progFlash = $state(false);
+  let poolFlash = $state(false);
+
+  function addToProgression(e: MouseEvent) {
     e.stopPropagation();
-    if (isInProgression) {
-      progression.removePoolKey(poolKey);
+    if (!isInPool) pool.add(voicing, tuning, chordName ?? '');
+    const pending = progression.pendingCellIdx;
+    if (pending !== null && pending >= 0 && pending < progression.cells.length) {
+      // Place into the specific cell (overwrite even if occupied)
+      progression.cells[pending] = { ...progression.cells[pending], poolKey: poolKey };
+      progression.persist();
+      progression.pendingCellIdx = null;
+      toast.show('Placed voicing into progression cell');
+      progFlash = true;
+      setTimeout(() => progFlash = false, 400);
+      setTimeout(() => { progression.pendingNav = 'progression'; }, 1000);
     } else {
-      if (!isInPool) pool.add(voicing, tuning, chordName ?? '');
       progression.pushFromPool(poolKey);
+      toast.show('Added voicing to the tail of the progression');
+      progFlash = true;
+      setTimeout(() => progFlash = false, 400);
+    }
+  }
+
+  function handlePoolClick(e: MouseEvent) {
+    e.stopPropagation();
+    if (isInPool) {
+      if (isUsedInProgression) return;
+      pool.remove(poolKey);
+      toast.show('Removed voicing from pool');
+    } else {
+      pool.add(voicing, tuning, chordName ?? '');
+      toast.show('Added voicing to pool');
+      poolFlash = true;
+      setTimeout(() => poolFlash = false, 400);
     }
   }
 
@@ -123,18 +152,21 @@
     <button
       class="pool-btn"
       class:in-pool={isInPool}
-      title={isInPool ? 'Remove from pool' : 'Add to pool'}
-      onclick={(e) => { e.stopPropagation(); if (isInPool) pool.remove(poolKey); else pool.add(voicing, tuning, chordName ?? ''); }}
+      class:flash={poolFlash}
+      class:disabled={isInPool && isUsedInProgression}
+      title={isInPool ? (isUsedInProgression ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+      onclick={handlePoolClick}
+      disabled={isInPool && isUsedInProgression}
     >
       {isInPool ? '−' : '+'}
     </button>
     <button
       class="prog-btn"
-      class:in-prog={isInProgression}
-      title={isInProgression ? 'Remove from progression' : 'Add to progression'}
-      onclick={toggleProgression}
+      class:flash={progFlash}
+      title="Add to progression"
+      onclick={addToProgression}
     >
-      {isInProgression ? '■' : '▶'}
+      ▶
     </button>
   {/if}
   <svg
@@ -306,8 +338,8 @@
 
   .pool-btn {
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: -12px;
+    right: -12px;
     width: 26px;
     height: 26px;
     border-radius: 50%;
@@ -336,11 +368,18 @@
   .pool-btn.in-pool:hover {
     opacity: 0.8;
   }
+  .pool-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .pool-btn.disabled:hover {
+    opacity: 0.35;
+  }
 
   .prog-btn {
     position: absolute;
-    top: -4px;
-    right: 26px;
+    top: -12px;
+    right: 18px;
     width: 26px;
     height: 26px;
     border-radius: 50%;
@@ -361,13 +400,15 @@
     border-color: var(--accent);
     color: var(--accent);
   }
-  .prog-btn.in-prog {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--bg);
+
+  .pool-btn.flash,
+  .prog-btn.flash {
+    animation: btn-flash 0.4s ease-out;
   }
-  .prog-btn.in-prog:hover {
-    opacity: 0.8;
+
+  @keyframes btn-flash {
+    0% { background: var(--accent); border-color: var(--accent); color: var(--bg); transform: scale(1.15); }
+    100% { transform: scale(1); }
   }
 
   .chord-actions {

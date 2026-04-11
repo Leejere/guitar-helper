@@ -28,6 +28,12 @@ class ProgressionState {
   title: string = $state('My Progression');
   columns = 4;
 
+  /** When set, the next "add to progression" should target this cell index */
+  pendingCellIdx: number | null = $state(null);
+
+  /** When set to a tab name, App.svelte navigates there and clears it */
+  pendingNav: string | null = $state(null);
+
   constructor() {
     this.hydrate();
     if (this.cells.length === 0) {
@@ -228,7 +234,7 @@ class ProgressionState {
     try { localStorage.setItem(TITLE_KEY, this.title); } catch {}
   }
 
-  private persist() {
+  persist() {
     try {
       const data = this.cells.map(c => ({ id: c.id, poolKey: c.poolKey }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

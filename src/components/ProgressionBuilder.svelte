@@ -4,7 +4,7 @@
   import { responsive } from '../lib/responsive.svelte';
   import { displayAccidental, getChord, normalizeInput } from '../lib/music';
   import { filterChords, type ChordEntry } from '../lib/chords';
-  import { findVoicings } from '../lib/voicings';
+  import { findVoicings, voicingToString } from '../lib/voicings';
   import { STANDARD } from '../lib/tunings';
   import { jsPDF } from 'jspdf';
   import html2canvas from 'html2canvas';
@@ -21,10 +21,29 @@
   let { onNavigateToFinder, onNavigateToChord, onNavigateToIdentifier, onNavigateToShapes }: Props = $props();
 
   // Quick-add search state
+  interface QuickResult extends ChordEntry {
+    topVoicingStr: string;
+  }
+
   let quickSearch = $state('');
-  let quickResults: ChordEntry[] = $state([]);
+  let quickResults: QuickResult[] = $state([]);
   let quickDropdownOpen = $state(false);
   let quickAddingSymbol: string | null = $state(null);
+
+  function getTopVoicingStr(entry: ChordEntry): string {
+    try {
+      const chord = getChord(normalizeInput(entry.symbol));
+      if (!chord || chord.empty || !chord.notes?.length) return '';
+      const v = findVoicings(chord.notes, {
+        tuning: STANDARD.notes,
+        maxFret: 15,
+        maxSpan: 4,
+        maxResults: 1,
+        requiredBass: entry.bassNote,
+      });
+      return v.length > 0 ? voicingToString(v[0].frets) : '';
+    } catch { return ''; }
+  }
 
   function updateQuickResults(value: string) {
     quickSearch = value;
@@ -33,7 +52,7 @@
       quickDropdownOpen = false;
       return;
     }
-    quickResults = filterChords({
+    const entries = filterChords({
       search: value,
       roots: [],
       keys: [],
@@ -41,6 +60,7 @@
       voicings: [],
       scale: '',
     }).slice(0, 8);
+    quickResults = entries.map(e => ({ ...e, topVoicingStr: getTopVoicingStr(e) }));
     quickDropdownOpen = quickResults.length > 0;
   }
 
@@ -115,7 +135,8 @@
   // Cell-level quick-add state
   let cellQuickIdx: number | null = $state(null);
   let cellQuickSearch = $state('');
-  let cellQuickResults: ChordEntry[] = $state([]);
+  let cellQuickResults: QuickResult[] = $state([]);
+  let cellPoolMatches: PoolEntry[] = $state([]);
   let cellQuickOpen = $state(false);
   let cellQuickAdding: string | null = $state(null);
 
@@ -186,6 +207,7 @@
     cellQuickIdx = null;
     cellQuickSearch = '';
     cellQuickResults = [];
+    cellPoolMatches = [];
     cellQuickOpen = false;
     cellQuickAdding = null;
   }
@@ -194,10 +216,15 @@
     cellQuickSearch = value;
     if (value.trim().length === 0) {
       cellQuickResults = [];
+      cellPoolMatches = [];
       cellQuickOpen = false;
       return;
     }
-    cellQuickResults = filterChords({
+    const q = value.trim().toLowerCase();
+    cellPoolMatches = pool.entries.filter(pe =>
+      pe.chordName.toLowerCase().includes(q)
+    );
+    const entries = filterChords({
       search: value,
       roots: [],
       keys: [],
@@ -205,7 +232,17 @@
       voicings: [],
       scale: '',
     }).slice(0, 6);
-    cellQuickOpen = cellQuickResults.length > 0;
+    cellQuickResults = entries.map(e => ({ ...e, topVoicingStr: getTopVoicingStr(e) }));
+    cellQuickOpen = cellPoolMatches.length > 0 || cellQuickResults.length > 0;
+  }
+
+  function handleCellPoolPlace(poolEntry: PoolEntry, idx: number) {
+    progression.pushToCell(poolEntry.key, idx);
+    cellQuickSearch = '';
+    cellQuickResults = [];
+    cellPoolMatches = [];
+    cellQuickOpen = false;
+    cellQuickIdx = null;
   }
 
   function handleCellQuickAdd(entry: ChordEntry, idx: number) {
@@ -229,6 +266,7 @@
       cellQuickAdding = null;
       cellQuickSearch = '';
       cellQuickResults = [];
+      cellPoolMatches = [];
       cellQuickOpen = false;
       cellQuickIdx = null;
     }
@@ -588,26 +626,29 @@
           <div class="quick-dropdown" use:positionFixedDropdown>
             {#each quickResults as entry (entry.symbol)}
               <div class="quick-item">
-                <span class="quick-item-name">{displayAccidental(entry.symbol)}</span>
-                <span class="quick-item-type">{entry.typeName}</span>
+                <div class="quick-item-row1">
+                  <span class="quick-item-name">{displayAccidental(entry.symbol)}</span>
+                  <span class="quick-item-type">{entry.typeName}</span>
+                  {#if entry.topVoicingStr}<span class="quick-item-frets">{entry.topVoicingStr}</span>{/if}
+                </div>
                 <div class="quick-item-actions">
                   <button
                     class="quick-action-btn add"
                     title="Add to pool"
                     disabled={quickAddingSymbol === entry.symbol}
                     onclick={() => handleQuickAdd(entry)}
-                  >+</button>
+                  >+ Pool</button>
                   <button
                     class="quick-action-btn prog"
                     title="Add to progression"
                     disabled={quickAddingSymbol === entry.symbol}
                     onclick={() => handleQuickAddToProgression(entry)}
-                  >▶</button>
+                  >+ Progression</button>
                   <button
                     class="quick-action-btn go"
                     title="Browse voicings"
                     onclick={() => handleQuickNavigate(entry)}
-                  >→</button>
+                  >Browse</button>
                 </div>
               </div>
             {/each}
@@ -659,26 +700,29 @@
             <div class="quick-dropdown" use:positionFixedDropdown>
               {#each quickResults as entry (entry.symbol)}
                 <div class="quick-item">
-                  <span class="quick-item-name">{displayAccidental(entry.symbol)}</span>
-                  <span class="quick-item-type">{entry.typeName}</span>
+                  <div class="quick-item-row1">
+                    <span class="quick-item-name">{displayAccidental(entry.symbol)}</span>
+                    <span class="quick-item-type">{entry.typeName}</span>
+                    {#if entry.topVoicingStr}<span class="quick-item-frets">{entry.topVoicingStr}</span>{/if}
+                  </div>
                   <div class="quick-item-actions">
                     <button
                       class="quick-action-btn add"
                       title="Add to pool"
                       disabled={quickAddingSymbol === entry.symbol}
                       onclick={() => handleQuickAdd(entry)}
-                    >+</button>
+                    >+ Pool</button>
                     <button
                       class="quick-action-btn prog"
                       title="Add to progression"
                       disabled={quickAddingSymbol === entry.symbol}
                       onclick={() => handleQuickAddToProgression(entry)}
-                    >▶</button>
+                    >+ Progression</button>
                     <button
                       class="quick-action-btn go"
                       title="Browse voicings"
                       onclick={() => handleQuickNavigate(entry)}
-                    >→</button>
+                    >Browse</button>
                   </div>
                 </div>
               {/each}
@@ -829,16 +873,6 @@
                       {/if}
                     </div>
                   </div>
-                  <button
-                    class="cell-remove-btn cell-dup-btn"
-                    title="Duplicate cell"
-                    onclick={(e) => { e.stopPropagation(); handleDuplicateCell(idx); }}
-                  >⧉</button>
-                  <button
-                    class="cell-remove-btn"
-                    title="Delete cell"
-                    onclick={(e) => { e.stopPropagation(); handleDeleteCell(idx); }}
-                  >−</button>
                 {:else}
                   <div class="cell-empty">
                     {#if cellQuickIdx === idx}
@@ -855,33 +889,60 @@
                         />
                         {#if cellQuickOpen}
                           <div class="cell-quick-dropdown" use:positionDropdown>
-                            {#each cellQuickResults as result}
-                              <div class="cell-quick-item">
-                                <span class="cell-quick-name">{displayAccidental(result.symbol)}</span>
-                                <span class="cell-quick-type">{result.typeName}</span>
-                                <div class="cell-quick-item-actions">
-                                  <button
-                                    class="quick-action-btn add"
-                                    title="Add to pool & place here"
-                                    disabled={cellQuickAdding === result.symbol}
-                                    onclick={(e) => { e.stopPropagation(); handleCellQuickAdd(result, idx); }}
-                                  >+</button>
-                                  <button
-                                    class="quick-action-btn go"
-                                    title="Browse voicings"
-                                    onclick={(e) => { e.stopPropagation(); handleQuickNavigate(result); }}
-                                  >→</button>
+                            {#if cellPoolMatches.length > 0}
+                              <div class="cell-quick-section-title">In pool</div>
+                              {#each cellPoolMatches as pe (pe.key)}
+                                <div class="cell-quick-item">
+                                  <div class="cell-quick-row1">
+                                    <span class="cell-quick-name">{displayAccidental(pe.chordName)}</span>
+                                    <span class="cell-quick-frets">{voicingToString(pe.voicing.frets)}</span>
+                                  </div>
+                                  <div class="cell-quick-item-actions">
+                                    <button
+                                      class="quick-action-btn add"
+                                      title="Place in this cell"
+                                      onclick={(e) => { e.stopPropagation(); handleCellPoolPlace(pe, idx); }}
+                                    >Place</button>
+                                  </div>
                                 </div>
-                              </div>
-                            {/each}
+                              {/each}
+                            {/if}
+                            {#if cellQuickResults.length > 0}
+                              {#if cellPoolMatches.length > 0}
+                                <div class="cell-quick-section-divider"></div>
+                              {/if}
+                              <div class="cell-quick-section-title">All chords</div>
+                              {#each cellQuickResults as result}
+                                <div class="cell-quick-item">
+                                  <div class="cell-quick-row1">
+                                    <span class="cell-quick-name">{displayAccidental(result.symbol)}</span>
+                                    <span class="cell-quick-type">{result.typeName}</span>
+                                    {#if result.topVoicingStr}<span class="cell-quick-frets">{result.topVoicingStr}</span>{/if}
+                                  </div>
+                                  <div class="cell-quick-item-actions">
+                                    <button
+                                      class="quick-action-btn add"
+                                      title="Add to pool & place here"
+                                      disabled={cellQuickAdding === result.symbol}
+                                      onclick={(e) => { e.stopPropagation(); handleCellQuickAdd(result, idx); }}
+                                    >+ Place</button>
+                                    <button
+                                      class="quick-action-btn go"
+                                      title="Browse voicings"
+                                      onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; handleQuickNavigate(result); }}
+                                    >Browse</button>
+                                  </div>
+                                </div>
+                              {/each}
+                            {/if}
                           </div>
                         {/if}
                         <div class="cell-quick-nav">
                           {#if onNavigateToFinder}
-                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); onNavigateToFinder?.(); }}>Finder</button>
+                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; onNavigateToFinder?.(); }}>Finder</button>
                           {/if}
                           {#if onNavigateToIdentifier}
-                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); onNavigateToIdentifier?.(); }}>Identifier</button>
+                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; onNavigateToIdentifier?.(); }}>Identifier</button>
                           {/if}
                         </div>
                       </div>
@@ -890,6 +951,16 @@
                     {/if}
                   </div>
                 {/if}
+                <button
+                  class="cell-remove-btn cell-dup-btn"
+                  title="Duplicate cell"
+                  onclick={(e) => { e.stopPropagation(); handleDuplicateCell(idx); }}
+                >⧉</button>
+                <button
+                  class="cell-remove-btn"
+                  title="Delete cell"
+                  onclick={(e) => { e.stopPropagation(); handleDeleteCell(idx); }}
+                >−</button>
               </div>
 
               <!-- Insert cell gutter -->
@@ -1004,13 +1075,18 @@
   }
   .quick-item {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 4px;
     padding: 6px 10px;
     border-bottom: 1px solid var(--border);
   }
   .quick-item:last-child {
     border-bottom: none;
+  }
+  .quick-item-row1 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .quick-item-name {
     font-weight: 600;
@@ -1026,24 +1102,30 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .quick-item-frets {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+    white-space: nowrap;
+  }
   .quick-item-actions {
     display: flex;
     gap: 4px;
     flex-shrink: 0;
   }
   .quick-action-btn {
-    width: 28px;
-    height: 28px;
+    height: 26px;
+    padding: 0 8px;
     border: 1px solid var(--border);
     border-radius: 6px;
     background: var(--bg);
     color: var(--text-muted);
-    font-size: 16px;
+    font-size: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    white-space: nowrap;
     line-height: 1;
     transition: all 0.12s;
   }
@@ -1055,9 +1137,6 @@
     border-color: var(--accent);
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 8%, var(--bg));
-  }
-  .quick-action-btn.prog {
-    font-size: 11px;
   }
   .quick-action-btn.prog:hover:not(:disabled) {
     border-color: var(--accent);
@@ -1501,8 +1580,8 @@
   }
   .cell-quick-item {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 3px;
     padding: 5px 8px;
     border: none;
     border-bottom: 1px solid var(--border);
@@ -1518,10 +1597,14 @@
   .cell-quick-item:hover {
     background: color-mix(in srgb, var(--accent) 10%, var(--bg));
   }
+  .cell-quick-row1 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
   .cell-quick-item-actions {
     display: flex;
     gap: 4px;
-    margin-left: auto;
   }
   .cell-quick-name {
     font-weight: 600;
@@ -1534,6 +1617,25 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .cell-quick-frets {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+    white-space: nowrap;
+  }
+  .cell-quick-section-title {
+    padding: 4px 8px 2px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .cell-quick-section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
   }
 
   .cell-action-btn {

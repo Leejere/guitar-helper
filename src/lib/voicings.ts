@@ -387,6 +387,18 @@ export function detectBarres(frets: number[]): Barre[] {
         break;
       }
     }
+    if (!validBarre) continue;
+
+    // A barre finger extends from the treble side (high E, index 5) toward
+    // the bass side. Any sounding string on the treble side of the barre
+    // (index > to) would also be pressed at this fret, so it must not be
+    // fretted lower than the barre fret — otherwise the barre is impossible.
+    for (let s = to + 1; s < frets.length; s++) {
+      if (frets[s] >= 0 && frets[s] < fret) {
+        validBarre = false;
+        break;
+      }
+    }
 
     if (validBarre) {
       barres.push({ fret, fromString: from, toString: to });
