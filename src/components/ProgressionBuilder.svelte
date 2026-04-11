@@ -143,22 +143,46 @@
   function positionDropdown(node: HTMLElement) {
     function reposition() {
       const vw = window.innerWidth;
+      const vh = window.innerHeight;
       const pad = 8;
+      const parentRect = node.parentElement!.getBoundingClientRect();
+      const dropdownHeight = node.offsetHeight || 220; // fallback to max-height
+
+      // Check if dropdown would overflow bottom of viewport
+      const spaceBelow = vh - parentRect.bottom - 2;
+      const spaceAbove = parentRect.top - 2;
+      const flipUp = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
       if (vw < 480) {
         // Narrow screen: fixed full-width
-        const rect = node.parentElement!.getBoundingClientRect();
         node.style.position = 'fixed';
         node.style.left = pad + 'px';
         node.style.right = pad + 'px';
-        node.style.top = (rect.bottom + 2) + 'px';
         node.style.width = 'auto';
         node.style.minWidth = 'unset';
+        if (flipUp) {
+          node.style.top = '';
+          node.style.bottom = (vh - parentRect.top + 2) + 'px';
+        } else {
+          node.style.bottom = '';
+          node.style.top = (parentRect.bottom + 2) + 'px';
+        }
       } else {
         // Wider screen: absolute, but clamp to viewport
         node.style.position = 'absolute';
-        node.style.top = '100%';
         node.style.right = '';
         node.style.width = '';
+        if (flipUp) {
+          node.style.top = '';
+          node.style.bottom = '100%';
+          node.style.marginTop = '';
+          node.style.marginBottom = '2px';
+        } else {
+          node.style.bottom = '';
+          node.style.top = '100%';
+          node.style.marginBottom = '';
+          node.style.marginTop = '2px';
+        }
         const rect = node.getBoundingClientRect();
         if (rect.right > vw - pad) {
           const overflow = rect.right - (vw - pad);
@@ -292,14 +316,67 @@
     try {
       // Add export class for white background and hidden buttons
       progressionGridEl.classList.add('exporting');
+      // Force inline styles for html2canvas reliability
+      const savedStyle = progressionGridEl.style.cssText;
+      progressionGridEl.style.overflow = 'visible';
+      progressionGridEl.style.height = 'auto';
+      progressionGridEl.style.flex = 'none';
+      progressionGridEl.style.gridTemplateColumns = 'repeat(6, 1fr)';
+      // Hide action buttons inline so html2canvas respects it
+      const actionBtns = progressionGridEl.querySelectorAll('.cell-action-btn, .cell-remove-btn, .cell-insert-btn');
+      actionBtns.forEach(b => (b as HTMLElement).style.display = 'none');
+      // Remove cell borders inline so html2canvas respects it
+      const gridCells = progressionGridEl.querySelectorAll('.grid-cell');
+      gridCells.forEach(c => {
+        const el = c as HTMLElement;
+        el.style.border = 'none';
+        el.style.borderRadius = '0';
+      });
+      // Hide empty trailing cells
+      const wrappers = progressionGridEl.querySelectorAll('.grid-cell-wrapper');
+      let lastFilledIdx = -1;
+      wrappers.forEach((w, i) => {
+        if (w.querySelector('.filled')) lastFilledIdx = i;
+      });
+      const hiddenWrappers: HTMLElement[] = [];
+      wrappers.forEach((w, i) => {
+        if (i > lastFilledIdx) {
+          (w as HTMLElement).style.display = 'none';
+          hiddenWrappers.push(w as HTMLElement);
+        }
+      });
+      // Add horizontal row separator lines between rows
+      const visibleCount = lastFilledIdx + 1;
+      const lastRowStart = Math.floor((visibleCount - 1) / 6) * 6;
+      const borderedWrappers: HTMLElement[] = [];
+      for (let i = 0; i < visibleCount; i++) {
+        if (i < lastRowStart) {
+          const el = wrappers[i] as HTMLElement;
+          el.style.borderBottom = '1px solid #ccc';
+          borderedWrappers.push(el);
+        }
+      }
       // Wait a frame for styles to apply
       await new Promise(r => requestAnimationFrame(r));
 
       const canvas = await html2canvas(progressionGridEl, {
         backgroundColor: '#ffffff',
         scale: 2,
+        scrollY: 0,
+        height: progressionGridEl.scrollHeight,
+        windowHeight: progressionGridEl.scrollHeight,
       });
 
+      // Restore styles
+      progressionGridEl.style.cssText = savedStyle;
+      actionBtns.forEach(b => (b as HTMLElement).style.display = '');
+      gridCells.forEach(c => {
+        const el = c as HTMLElement;
+        el.style.border = '';
+        el.style.borderRadius = '';
+      });
+      hiddenWrappers.forEach(w => w.style.display = '');
+      borderedWrappers.forEach(w => w.style.borderBottom = '');
       progressionGridEl.classList.remove('exporting');
 
       const imgData = canvas.toDataURL('image/png');
@@ -319,24 +396,37 @@
 
       // Scale image to page width
       const contentW = pw - m * 2;
-      const scale = contentW / imgW;
-      const totalH = imgH * scale;
+      const scaleFactor = contentW / imgW;
+      const totalH = imgH * scaleFactor;
       const headerH = m + 24; // title space
       const footerH = 20;
-      const pageContentH = ph - headerH - footerH;
 
-      let srcY = 0; // tracks position in the source image (in scaled coords)
+      // Compute row boundaries in scaled coordinates for row-aware page breaks
+      const cols = 6;
+      const cellCount = lastFilledIdx + 1;
+      const rowCount = Math.ceil(cellCount / cols);
+      const rowH = rowCount > 0 ? totalH / rowCount : totalH;
+
+      let srcY = 0;
       let page = 0;
 
-      while (srcY < totalH) {
+      while (srcY < totalH - 0.5) {
         if (page > 0) doc.addPage();
         const yStart = page === 0 ? headerH : m;
-        const availH = page === 0 ? pageContentH : ph - m - footerH;
-        const drawH = Math.min(availH, totalH - srcY);
+        const availH = page === 0 ? (ph - headerH - footerH) : (ph - m - footerH);
+
+        // Snap drawH to row boundary: fit as many complete rows as possible
+        let drawH: number;
+        if (rowH > 0) {
+          const rowsFit = Math.max(1, Math.floor(availH / rowH));
+          drawH = Math.min(rowsFit * rowH, totalH - srcY);
+        } else {
+          drawH = Math.min(availH, totalH - srcY);
+        }
 
         // Clip source region from canvas
-        const srcPixelY = srcY / scale;
-        const srcPixelH = drawH / scale;
+        const srcPixelY = srcY / scaleFactor;
+        const srcPixelH = drawH / scaleFactor;
         const sliceCanvas = document.createElement('canvas');
         sliceCanvas.width = imgW;
         sliceCanvas.height = Math.ceil(srcPixelH);
@@ -1403,6 +1493,10 @@
   .progression-grid.exporting {
     background: #ffffff !important;
     color: #222 !important;
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
+    grid-template-columns: repeat(6, 1fr) !important;
     --nut-color: #333;
     --fret-color: #999;
     --string-color: #b08060;
@@ -1413,7 +1507,8 @@
     --border: #ccc;
   }
   .progression-grid.exporting .grid-cell {
-    border-color: #ccc !important;
+    border: none !important;
+    border-radius: 0 !important;
     background: #fff !important;
     color: #222 !important;
   }
@@ -1562,13 +1657,11 @@
   }
   .cell-quick-dropdown {
     position: absolute;
-    top: 100%;
     left: 0;
     min-width: 180px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 6px;
-    margin-top: 2px;
     z-index: 40;
     max-height: 220px;
     overflow-y: auto;
