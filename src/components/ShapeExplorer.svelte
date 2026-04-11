@@ -16,6 +16,9 @@
   import ButtonFilter from './ButtonFilter.svelte';
   import { responsive } from '../lib/responsive.svelte';
   import { shapeExplorerState as ses } from '../lib/shape-explorer-state.svelte';
+  import { pool } from '../lib/pool.svelte';
+  import { progression } from '../lib/progression.svelte';
+  import { toast } from '../lib/toast.svelte';
 
   // Fretboard layout constants (must match Fretboard.svelte defaults)
   const FB_LEFT_PADDING = 75;
@@ -179,14 +182,17 @@
     const val = (selected[0] ?? '') as CAGEDShape | '';
     filterShape = val;
     filterVariants = [];
-    selectedPosition = null;
     selectedResultIdx = null;
     mobileView = 'fretboard';
+    // Auto-select lowest available position
+    selectedPosition = fretSelectorItems.length > 0 ? fretSelectorItems[0].position : null;
   }
 
   function handleVariantChange(selected: string[]) {
     filterVariants = selected;
     selectedResultIdx = null;
+    // Auto-select lowest available position
+    selectedPosition = fretSelectorItems.length > 0 ? fretSelectorItems[0].position : null;
   }
 
   function handleFretSelect(fret: number) {
@@ -376,21 +382,22 @@
 
     <!-- Detail section: always on desktop/tablet, only in detail view on phone -->
     {#if !(needsVertical && !isTablet && mobileView === 'fretboard') && shapeResults.length > 0}
-      <div class="detail-column">
-      <div class="section-title">
-        <span>
-          {shapeResults.length} chord voicing{shapeResults.length !== 1 ? 's' : ''} for <strong>{filterShape} shape</strong>
-          {#if filterVariants.length > 0}
-            ({filterVariants.map(v => variantOptions.find(o => o.displaySuffix === v)?.label ?? '').join(', ')})
-          {/if}
-          at {selectedPosition === 0 ? 'open position' : `fret ${selectedPosition}`}
-        </span>
-      </div>
-
       <div class="explorer-split">
         <div class="voicing-list">
+          <div class="section-title">
+            <span>
+              {shapeResults.length} chord voicing{shapeResults.length !== 1 ? 's' : ''} for <strong>{filterShape} shape</strong>
+              {#if filterVariants.length > 0}
+                ({filterVariants.map(v => variantOptions.find(o => o.displaySuffix === v)?.label ?? '').join(', ')})
+              {/if}
+              at {selectedPosition === 0 ? 'open position' : `fret ${selectedPosition}`}
+            </span>
+          </div>
           <div class="voicing-items">
             {#each shapeResults as result, idx}
+              {@const pk = pool.keyFor(result.voicing.frets, result.chordName)}
+              {@const inPool = pool.entries.some(e => e.key === pk)}
+              {@const usedInProg = progression.hasPoolKey(pk)}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
@@ -419,6 +426,21 @@
                     <span class="tag tag-barre">Barre fret {result.voicing.barres[0].fret}</span>
                   {/if}
                 </span>
+                <span class="voicing-actions">
+                  <button
+                    class="voicing-action-btn"
+                    class:in-pool={inPool}
+                    class:disabled={inPool && usedInProg}
+                    title={inPool ? (usedInProg ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+                    disabled={inPool && usedInProg}
+                    onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show('Removed from pool'); } } else { pool.add(result.voicing, tuning, result.chordName); toast.show('Added to pool'); } }}
+                  >{inPool ? '− Delete from pool' : '+ Add to pool'}</button>
+                  <button
+                    class="voicing-action-btn"
+                    title="Add to progression"
+                    onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(result.voicing, tuning, result.chordName); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show('Placed into progression cell'); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show('Added to progression'); } }}
+                  >+ Add to progression</button>
+                </span>
               </div>
             {/each}
           </div>
@@ -442,7 +464,6 @@
             </div>
           {/if}
         </div>
-      </div>
       </div>
     {/if}
     </div>
@@ -498,20 +519,17 @@
     margin-top: 0;
   }
 
-  .explorer-scroll-area.tablet .detail-column {
+  .explorer-scroll-area.tablet .explorer-split {
     flex: 1;
     min-width: 0;
-    overflow-y: auto;
-  }
-
-  .explorer-scroll-area.tablet .explorer-split {
     flex-direction: column;
+    overflow-y: auto;
     margin-top: 0;
-    padding-right: 0;
+    padding-right: 24px;
   }
 
-  .explorer-scroll-area.tablet .section-title {
-    flex-shrink: 0;
+  .explorer-scroll-area.tablet .voicing-list {
+    align-self: stretch;
   }
 
   .explorer-scroll-area.tablet .voicing-detail {
@@ -521,14 +539,14 @@
 
   .fretboard-scroll {
     overflow-x: auto;
-    overflow-y: hidden;
   }
 
   /* Fret selector row — positioned to align with fretboard */
   .fret-selector-row {
     position: relative;
-    height: 155px;
+    height: 175px;
     margin-top: 4px;
+    overflow: visible;
   }
 
   .fret-selector-slot {
@@ -562,6 +580,7 @@
     transition: all 0.15s;
     white-space: nowrap;
     width: 66px;
+    overflow: hidden;
   }
 
   .fret-selector-btn:hover {
@@ -635,14 +654,13 @@
   .section-title {
     font-size: 14px;
     margin-bottom: 10px;
-    padding-right: 24px;
   }
 
   /* Split layout */
   .explorer-split {
     display: flex;
     gap: 24px;
-    margin-top: 4px;
+    margin-top: 20px;
     align-items: flex-start;
     padding-right: 24px;
   }
@@ -680,6 +698,49 @@
   .voicing-item.active {
     background: var(--bg-card);
     border-left: 3px solid var(--accent);
+  }
+
+  .voicing-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .voicing-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .voicing-action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .voicing-action-btn.in-pool {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .voicing-action-btn.in-pool:hover {
+    opacity: 0.85;
+  }
+
+  .voicing-action-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .voicing-chord-name {
@@ -820,22 +881,24 @@
   .mobile-selector-col {
     position: relative;
     flex-shrink: 0;
-    min-width: 130px;
+    width: 130px;
   }
 
   .mobile-selector-slot {
     position: absolute;
     left: 0;
+    right: 0;
     transform: translateY(-50%);
   }
 
   .mobile-selector-col .fret-selector-btn {
     flex-direction: row;
-    width: auto;
+    width: 100%;
     height: 62px;
     padding: 3px 4px;
     gap: 3px;
     align-items: center;
+    overflow: hidden;
   }
 
   .mobile-selector-text {

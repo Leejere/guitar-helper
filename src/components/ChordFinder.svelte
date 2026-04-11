@@ -11,6 +11,9 @@
   import ButtonFilter from './ButtonFilter.svelte';
   import { responsive } from '../lib/responsive.svelte';
   import { chordFinderState as cfs } from '../lib/chord-finder-state.svelte';
+  import { pool } from '../lib/pool.svelte';
+  import { progression } from '../lib/progression.svelte';
+  import { toast } from '../lib/toast.svelte';
 
   // Fretboard layout constants (must match Fretboard.svelte non-compact mode)
   const FB_LEFT_PADDING = 75;
@@ -359,6 +362,15 @@
 
     if (voicings.length === 0) {
       errorMsg = `No playable voicings found for "${displayAccidental(symbol)}" in ${selectedTuning.name} tuning.`;
+    } else {
+      // Auto-select the lowest fret position
+      const groups = new Set(voicings.map(v => v.positionGroup));
+      const sorted = [...groups].sort((a, b) => {
+        const fa = a === 'Open position' ? -1 : parseInt(a.replace('Fret ', ''));
+        const fb = b === 'Open position' ? -1 : parseInt(b.replace('Fret ', ''));
+        return fa - fb;
+      });
+      if (sorted.length > 0) selectedFretFilter = sorted[0];
     }
   }
 
@@ -869,6 +881,9 @@
               {/if}
               {#if !group.label || !collapsedGroups.has(group.label)}
               {#each group.items as { voicing: v, origIdx }}
+                {@const pk = pool.keyFor(v.frets, activeChordSymbol)}
+                {@const inPool = pool.entries.some(e => e.key === pk)}
+                {@const usedInProg = progression.hasPoolKey(pk)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
@@ -897,6 +912,21 @@
                     {/if}
                   </span>
                   <span class="voicing-score" title="Playability ranking">Ranked {v.rank}/{voicings.length}</span>
+                  <span class="voicing-actions">
+                    <button
+                      class="voicing-action-btn"
+                      class:in-pool={inPool}
+                      class:disabled={inPool && usedInProg}
+                      title={inPool ? (usedInProg ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+                      disabled={inPool && usedInProg}
+                      onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show('Removed from pool'); } } else { pool.add(v, selectedTuning, activeChordSymbol); toast.show('Added to pool'); } }}
+                    >{inPool ? '− Delete from pool' : '+ Add to pool'}</button>
+                    <button
+                      class="voicing-action-btn"
+                      title="Add to progression"
+                      onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(v, selectedTuning, activeChordSymbol); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show('Placed into progression cell'); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show('Added to progression'); } }}
+                    >+ Add to progression</button>
+                  </span>
                 </div>
               {/each}
               {/if}
@@ -985,7 +1015,7 @@
     flex-direction: column;
     overflow-y: auto;
     margin-top: 0;
-    padding-right: 0;
+    padding-right: 24px;
   }
 
   .voicings-scroll-area.tablet .voicing-detail {
@@ -1119,6 +1149,9 @@
   .quick-search-group {
     flex: 0 1 180px;
     min-width: 120px;
+  }
+  .quick-search-group label {
+    white-space: nowrap;
   }
 
   .quick-search-wrapper {
@@ -1290,8 +1323,9 @@
   /* Fret selector row — positioned to align with fretboard */
   .fret-selector-row {
     position: relative;
-    height: 155px;
+    height: 175px;
     margin-top: 4px;
+    overflow: visible;
   }
 
   .fret-selector-slot {
@@ -1325,6 +1359,7 @@
     transition: all 0.15s;
     white-space: nowrap;
     width: 66px;
+    overflow: hidden;
   }
 
   .fret-selector-btn:hover {
@@ -1514,6 +1549,49 @@
   .voicing-item.active {
     background: var(--bg-card);
     border-left: 3px solid var(--accent);
+  }
+
+  .voicing-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .voicing-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .voicing-action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .voicing-action-btn.in-pool {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .voicing-action-btn.in-pool:hover {
+    opacity: 0.85;
+  }
+
+  .voicing-action-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .voicing-frets {
@@ -1745,22 +1823,24 @@
   .mobile-selector-col {
     position: relative;
     flex-shrink: 0;
-    min-width: 130px;
+    width: 130px;
   }
 
   .mobile-selector-slot {
     position: absolute;
     left: 0;
+    right: 0;
     transform: translateY(-50%);
   }
 
   .mobile-selector-col .fret-selector-btn {
     flex-direction: row;
-    width: auto;
+    width: 100%;
     height: 62px;
     padding: 3px 4px;
     gap: 3px;
     align-items: center;
+    overflow: hidden;
   }
 
   .mobile-selector-text {

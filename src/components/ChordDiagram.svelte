@@ -158,7 +158,7 @@
       onclick={handlePoolClick}
       disabled={isInPool && isUsedInProgression}
     >
-      {isInPool ? '−' : '+'}
+      {isInPool ? '− Drop' : '+ Pool'}
     </button>
     <button
       class="prog-btn"
@@ -166,7 +166,7 @@
       title="Add to progression"
       onclick={addToProgression}
     >
-      ▶
+      + Progression
     </button>
   {/if}
   <svg
@@ -334,19 +334,21 @@
     align-items: center;
     position: relative;
     overflow: visible;
+    margin-top: 14px;
   }
 
-  .pool-btn {
+  .pool-btn,
+  .prog-btn {
     position: absolute;
     top: -12px;
-    right: -12px;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+    width: 52px;
+    height: 22px;
+    border-radius: 4px;
     border: 1.5px solid var(--border);
     background: var(--bg-card);
     color: var(--text-muted);
-    font-size: 16px;
+    font-size: 10px;
+    font-weight: 600;
     line-height: 1;
     cursor: pointer;
     display: flex;
@@ -356,7 +358,15 @@
     transition: all 0.15s;
     z-index: 1;
   }
-  .pool-btn:hover {
+  .pool-btn {
+    right: -8px;
+  }
+  .prog-btn {
+    right: 48px;
+    width: 80px;
+  }
+  .pool-btn:hover,
+  .prog-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
   }
@@ -374,31 +384,6 @@
   }
   .pool-btn.disabled:hover {
     opacity: 0.35;
-  }
-
-  .prog-btn {
-    position: absolute;
-    top: -12px;
-    right: 18px;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-muted);
-    font-size: 11px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    transition: all 0.15s;
-    z-index: 1;
-  }
-  .prog-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
   }
 
   .pool-btn.flash,

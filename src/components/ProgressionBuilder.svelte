@@ -892,18 +892,14 @@
                             {#if cellPoolMatches.length > 0}
                               <div class="cell-quick-section-title">In pool</div>
                               {#each cellPoolMatches as pe (pe.key)}
-                                <div class="cell-quick-item">
-                                  <div class="cell-quick-row1">
-                                    <span class="cell-quick-name">{displayAccidental(pe.chordName)}</span>
-                                    <span class="cell-quick-frets">{voicingToString(pe.voicing.frets)}</span>
-                                  </div>
-                                  <div class="cell-quick-item-actions">
-                                    <button
-                                      class="quick-action-btn add"
-                                      title="Place in this cell"
-                                      onclick={(e) => { e.stopPropagation(); handleCellPoolPlace(pe, idx); }}
-                                    >Place</button>
-                                  </div>
+                                <div class="cell-quick-item cell-quick-item-row">
+                                  <span class="cell-quick-name">{displayAccidental(pe.chordName)}</span>
+                                  <span class="cell-quick-frets">{voicingToString(pe.voicing.frets)}</span>
+                                  <button
+                                    class="quick-action-btn add"
+                                    title="Place in this cell"
+                                    onclick={(e) => { e.stopPropagation(); handleCellPoolPlace(pe, idx); }}
+                                  >Place</button>
                                 </div>
                               {/each}
                             {/if}
@@ -1596,6 +1592,11 @@
   }
   .cell-quick-item:hover {
     background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  }
+  .cell-quick-item-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
   }
   .cell-quick-row1 {
     display: flex;
