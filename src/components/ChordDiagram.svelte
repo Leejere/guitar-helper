@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { Note, Interval } from 'tonal';
-  import { displayAccidental } from '../lib/music';
+  import { Note, Interval, Chord } from 'tonal';
+  import { displayAccidental, getIntervalLabel } from '../lib/music';
   import { playStrum } from '../lib/audio';
+  import { pool } from '../lib/pool.svelte';
   import type { Voicing } from '../lib/voicings';
   import type { Tuning } from '../lib/tunings';
 
@@ -9,9 +10,27 @@
     voicing: Voicing;
     tuning: Tuning;
     chordName?: string;
+    initialShowIntervals?: boolean;
+    hidePoolButton?: boolean;
   }
 
-  let { voicing, tuning, chordName }: Props = $props();
+  let { voicing, tuning, chordName, initialShowIntervals = false, hidePoolButton = false }: Props = $props();
+
+  let showIntervals = $state(false);
+
+  // Sync with parent's toggle when it changes
+  $effect(() => {
+    showIntervals = initialShowIntervals;
+  });
+
+  let chordRoot = $derived.by(() => {
+    if (!chordName) return null;
+    const info = Chord.get(chordName);
+    return info.tonic || null;
+  });
+
+  let poolKey = $derived(pool.keyFor(voicing.frets));
+  let isInPool = $derived(pool.entries.some(e => e.key === poolKey));
 
   const stringCount = 6;
   const stringSpacing = 22;
@@ -78,12 +97,26 @@
     await playStrum(voicing.notes);
   }
 
-  let voicingStr = $derived(
-    voicing.frets.map(f => f === -1 ? 'x' : f.toString()).join('')
-  );
+  function getDotLabel(stringIdx: number, fret: number): string {
+    const note = getNoteAt(stringIdx, fret);
+    if (showIntervals && chordRoot) {
+      return getIntervalLabel(chordRoot, note);
+    }
+    return displayAccidental(Note.pitchClass(note));
+  }
 </script>
 
 <div class="chord-card">
+  {#if !hidePoolButton}
+    <button
+      class="pool-btn"
+      class:in-pool={isInPool}
+      title={isInPool ? 'Remove from pool' : 'Add to pool'}
+      onclick={(e) => { e.stopPropagation(); if (isInPool) pool.remove(poolKey); else pool.add(voicing, tuning, chordName ?? ''); }}
+    >
+      {isInPool ? '−' : '+'}
+    </button>
+  {/if}
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={svgWidth}
@@ -164,14 +197,24 @@
           font-weight="600"
         >x</text>
       {:else if fret === 0}
+        {@const isRoot = voicing.pitchClasses.length > 0 && Note.pitchClass(getNoteAt(stringIdx, 0)) === voicing.pitchClasses[0]}
         <circle
           cx={stringX(stringIdx)}
           cy={topPadding - 15}
-          r="6"
-          fill="none"
-          stroke="var(--text-muted)"
+          r="8"
+          fill={isRoot ? 'var(--root-bg)' : 'none'}
+          stroke={isRoot ? 'var(--root-bg)' : 'var(--text-muted)'}
           stroke-width="1.5"
         />
+        <text
+          x={stringX(stringIdx)}
+          y={topPadding - 11.5}
+          text-anchor="middle"
+          font-size="8"
+          fill={isRoot ? '#fff' : 'var(--text-muted)'}
+          font-family="'Work Sans', system-ui, sans-serif"
+          font-weight="700"
+        >{getDotLabel(stringIdx, 0)}</text>
       {/if}
     {/each}
 
@@ -209,16 +252,22 @@
           fill="#fff"
           font-family="'Work Sans', system-ui, sans-serif"
           font-weight="700"
-        >{displayAccidental(Note.pitchClass(getNoteAt(stringIdx, fret)))}</text>
+        >{getDotLabel(stringIdx, fret)}</text>
       {/if}
     {/each}
   </svg>
 
-  <div class="voicing-label">{voicingStr}</div>
-
-  <button class="btn btn-small btn-secondary" onclick={handlePlay} style="margin-top: 6px;">
-    &#9654; Play
-  </button>
+  <div class="chord-actions">
+    <label class="intervals-toggle" onclick={(e) => e.stopPropagation()}>
+      <span class="toggle-label">Intervals</span>
+      <span class="toggle-switch" class:on={showIntervals} onclick={() => showIntervals = !showIntervals} role="switch" aria-checked={showIntervals} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showIntervals = !showIntervals; } }}>
+        <span class="toggle-knob"></span>
+      </span>
+    </label>
+    <button class="btn btn-small btn-secondary btn-icon" onclick={(e) => { e.stopPropagation(); handlePlay(); }} title="Play">
+      &#9654;
+    </button>
+  </div>
 </div>
 
 <style>
@@ -231,14 +280,90 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    position: relative;
+    overflow: visible;
   }
 
-  .voicing-label {
-    font-size: 13px;
+  .pool-btn {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
     color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all 0.15s;
+    z-index: 1;
+  }
+  .pool-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .pool-btn.in-pool {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+  .pool-btn.in-pool:hover {
+    opacity: 0.8;
+  }
+
+  .chord-actions {
+    display: flex;
+    gap: 6px;
     margin-top: 6px;
-    font-family: monospace;
-    letter-spacing: 1px;
+  }
+
+  .btn-icon {
+    min-width: 0;
+    padding: 4px 8px;
+  }
+
+  .intervals-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-label {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .toggle-switch {
+    position: relative;
+    width: 30px;
+    height: 16px;
+    background: var(--border);
+    border-radius: 8px;
+    transition: background 0.2s;
+    display: inline-block;
+    cursor: pointer;
+  }
+  .toggle-switch.on {
+    background: var(--accent);
+  }
+  .toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle-switch.on .toggle-knob {
+    transform: translateX(14px);
   }
 
   svg {

@@ -1,13 +1,18 @@
 import * as Tone from 'tone';
 
 let synth: Tone.PolySynth | null = null;
-let initialized = false;
+let startPromise: Promise<void> | null = null;
 
-async function ensureInit() {
-  if (!initialized) {
-    await Tone.start();
-    initialized = true;
+function ensureStarted() {
+  // Must be called synchronously inside a user-gesture handler
+  // so mobile browsers allow the AudioContext to resume.
+  if (!startPromise) {
+    startPromise = Tone.start();
   }
+  return startPromise;
+}
+
+function ensureSynth() {
   if (!synth) {
     synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
@@ -22,16 +27,17 @@ async function ensureInit() {
     synth.maxPolyphony = 6;
     synth.toDestination();
   }
+  return synth;
 }
 
 /**
  * Play notes simultaneously.
  */
 export async function playChord(notes: string[]) {
-  await ensureInit();
-  if (!synth || notes.length === 0) return;
+  const ready = ensureStarted();
+  const s = ensureSynth();
+  if (notes.length === 0) return;
 
-  // Convert note names to frequency-compatible format
   const validNotes = notes.filter(n => {
     try {
       Tone.Frequency(n).toFrequency();
@@ -43,16 +49,18 @@ export async function playChord(notes: string[]) {
 
   if (validNotes.length === 0) return;
 
-  synth.releaseAll();
-  synth.triggerAttackRelease(validNotes, '1n');
+  await ready;
+  s.releaseAll();
+  s.triggerAttackRelease(validNotes, '1n');
 }
 
 /**
  * Play notes with a strum effect (slight delay between strings).
  */
 export async function playStrum(notes: string[], downStrum = true) {
-  await ensureInit();
-  if (!synth || notes.length === 0) return;
+  const ready = ensureStarted();
+  const s = ensureSynth();
+  if (notes.length === 0) return;
 
   const validNotes = notes.filter(n => {
     try {
@@ -65,13 +73,14 @@ export async function playStrum(notes: string[], downStrum = true) {
 
   if (validNotes.length === 0) return;
 
-  synth.releaseAll();
+  await ready;
+  s.releaseAll();
 
   const ordered = downStrum ? validNotes : [...validNotes].reverse();
   const now = Tone.now();
 
   ordered.forEach((note, i) => {
-    synth!.triggerAttackRelease(note, '2n', now + i * 0.03);
+    s.triggerAttackRelease(note, '2n', now + i * 0.03);
   });
 }
 

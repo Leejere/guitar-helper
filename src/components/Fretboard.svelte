@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Note, Interval } from 'tonal';
-  import { displayAccidental } from '../lib/music';
+  import { displayAccidental, getIntervalLabel } from '../lib/music';
   import type { Tuning } from '../lib/tunings';
 
   interface Props {
@@ -94,21 +94,14 @@
   function getLabel(stringIdx: number, fret: number): string {
     const pc = getPitchClass(stringIdx, fret);
     if (mode === 'intervals' && rootNote) {
-      const interval = Interval.distance(rootNote, pc);
-      const map: Record<string, string> = {
-        '1P': 'R', '2m': '♭2', '2M': '2', '2A': '♯2',
-        '3m': '♭3', '3M': '3', '4P': '4', '4A': '♯4',
-        '5d': '♭5', '5P': '5', '5A': '♯5', '6m': '♭6',
-        '6M': '6', '7m': '♭7', '7M': '7',
-      };
-      return map[interval] ?? interval;
+      return getIntervalLabel(rootNote, pc);
     }
     return displayAccidental(pc);
   }
 
   function isRoot(stringIdx: number, fret: number): boolean {
     if (mode === 'intervals') {
-      return getPitchClass(stringIdx, fret) === Note.pitchClass(rootNote);
+      return Note.chroma(getPitchClass(stringIdx, fret)) === Note.chroma(rootNote);
     }
     return false;
   }

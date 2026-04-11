@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getChord, displayAccidental, normalizeInput } from '../lib/music';
+  import { getChord, displayAccidental, normalizeInput, getIntervalLabel } from '../lib/music';
   import { findVoicings, voicingToString, type Voicing, type CAGEDShape } from '../lib/voicings';
   import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
   import { filterChords, getChordDatabase, ALL_CATEGORIES, getAllKeys, FILTER_ROOTS, SCALE_MODES, type ChordEntry } from '../lib/chords';
@@ -18,6 +18,7 @@
   const FB_RIGHT_PADDING = 20;
   const FB_SVG_WIDTH = FB_LEFT_PADDING + (FB_FRET_COUNT + 1) * FB_FRET_SPACING + FB_RIGHT_PADDING;
   const needsVertical = $derived(responsive.windowWidth < FB_SVG_WIDTH + 60);
+  const isTablet = $derived(needsVertical && responsive.windowWidth >= 768);
 
   function fretSelectorCenterX(fretNumber: number): number {
     const fret = Math.max(fretNumber, 0);
@@ -62,6 +63,7 @@
   let errorMsg = $state('');
   let selectedIdx: number | null = $state(null);
   let chordNotes: string[] = $state([]);
+  let chordRoot: string | null = $state(null);
   let filterPositions: { string: number; fret: number }[] = $state([]);
 
   // New filter/sort state for voicing list
@@ -73,6 +75,9 @@
 
   // Mobile view state
   let mobileView: 'fretboard' | 'detail' = $state('fretboard');
+
+  // Intervals toggle
+  let showIntervals = $state(false);
 
   // Clear tone filter when position filter changes
   $effect(() => {
@@ -308,6 +313,7 @@
     selectedIdx = null;
     lastActiveVoicing = null;
     chordNotes = [];
+    chordRoot = null;
     filterPositions = [];
     selectedFretFilter = null;
     filterCaged = [];
@@ -322,6 +328,7 @@
     }
 
     chordNotes = chord.notes;
+    chordRoot = chord.tonic || null;
     const resolvedBass = bassNote ?? (chord.bass && chord.bass !== chord.tonic ? chord.bass : undefined);
     voicings = findVoicings(chord.notes, {
       tuning: selectedTuning.notes,
@@ -635,17 +642,23 @@
         <div class="chord-info-bar">
           <span class="chord-info-name">{displayAccidental(activeChordEntry.symbol)}</span>
           {#if chordNotes.length > 0}
-            <span class="chord-notes">({chordNotes.map(n => displayAccidental(n)).join(' · ')})</span>
+            <span class="chord-notes">({#if showIntervals && chordRoot}{chordNotes.map(n => getIntervalLabel(chordRoot, n)).join(' · ')}{:else}{chordNotes.map(n => displayAccidental(n)).join(' · ')}{/if})</span>
           {/if}
           <span class="chord-info-type">{activeChordEntry.typeName}</span>
           <span class="chord-info-category">{activeChordEntry.category}</span>
           {#if activeChordEntry.keys.length > 0}
             <span class="chord-info-keys">Keys: {activeChordEntry.keys.map(k => displayAccidental(k)).join(', ')}</span>
           {/if}
+          <label class="intervals-toggle">
+            <span class="toggle-label">Intervals</span>
+            <span class="toggle-switch" class:on={showIntervals} onclick={() => showIntervals = !showIntervals} role="switch" aria-checked={showIntervals} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showIntervals = !showIntervals; } }}>
+              <span class="toggle-knob"></span>
+            </span>
+          </label>
         </div>
       {/if}
 
-      <div class="voicings-scroll-area">
+      <div class="voicings-scroll-area" class:tablet={isTablet}>
       {#snippet fretSelectorBtnContent(item: FretSelectorItem)}
         <span class="fret-selector-label">{item.positionGroup === 'Open position' ? 'Open' : `Fret ${item.fretNumber}`}</span>
         <MiniChordDiagram voicing={item.bestVoicing} tuning={selectedTuning} />
@@ -676,15 +689,16 @@
         </span>
       {/snippet}
 
-      <!-- Fretboard section: hidden on mobile detail view -->
-      {#if !(needsVertical && mobileView === 'detail')}
+      <!-- Fretboard section: hidden on phone detail view (tablet shows both) -->
+      {#if !(needsVertical && !isTablet && mobileView === 'detail')}
         {#if needsVertical}
           <!-- Mobile: vertical fretboard + side selectors (single scroll container) -->
           <div class="mobile-fretboard-layout">
             <Fretboard
               tuning={selectedTuning}
               fretCount={15}
-              mode="notes"
+              mode={showIntervals && chordRoot ? 'intervals' : 'notes'}
+              rootNote={chordRoot ?? 'C'}
               leftPaddingOverride={FB_LEFT_PADDING}
               highlightNotes={chordNotes}
               activeVoicing={displayVoicing}
@@ -697,7 +711,7 @@
                   <button
                     class="fret-selector-btn"
                     class:active={selectedFretFilter === item.positionGroup}
-                    onclick={() => { selectedFretFilter = selectedFretFilter === item.positionGroup ? null : item.positionGroup; mobileView = 'detail'; }}
+                    onclick={() => { selectedFretFilter = selectedFretFilter === item.positionGroup ? null : item.positionGroup; if (!isTablet) mobileView = 'detail'; }}
                   >
                     {@render mobileFretSelectorBtnContent(item)}
                   </button>
@@ -707,7 +721,7 @@
                 <button
                   class="fret-selector-btn fret-selector-all"
                   class:active={selectedFretFilter === 'all'}
-                  onclick={() => { selectedFretFilter = selectedFretFilter === 'all' ? null : 'all'; mobileView = 'detail'; }}
+                  onclick={() => { selectedFretFilter = selectedFretFilter === 'all' ? null : 'all'; if (!isTablet) mobileView = 'detail'; }}
                 >
                   <span class="mobile-selector-text">
                     <span class="fret-selector-label">All</span>
@@ -725,7 +739,8 @@
               <Fretboard
                 tuning={selectedTuning}
                 fretCount={15}
-                mode="notes"
+                mode={showIntervals && chordRoot ? 'intervals' : 'notes'}
+                rootNote={chordRoot ?? 'C'}
                 leftPaddingOverride={FB_LEFT_PADDING}
                 highlightNotes={chordNotes}
                 activeVoicing={displayVoicing}
@@ -781,12 +796,12 @@
         {/if}
       {/if}
 
-      <!-- Detail section: on mobile only in detail view; on desktop when fret selected -->
-      {#if needsVertical && mobileView === 'detail'}
+      <!-- Detail section: on phone only in detail view; on tablet/desktop when fret selected -->
+      {#if needsVertical && !isTablet && mobileView === 'detail'}
         <button class="mobile-back-btn" onclick={() => mobileView = 'fretboard'}>&larr; Back to fretboard</button>
       {/if}
 
-      {#if !(needsVertical && mobileView === 'fretboard') && selectedFretFilter}
+      {#if !(needsVertical && !isTablet && mobileView === 'fretboard') && selectedFretFilter}
       <div class="finder-split">
         <div class="voicing-list">
           <!-- Shape filter -->
@@ -882,7 +897,7 @@
                 <span class="tag tag-barre">Barre fret {selectedVoicing.barres[0].fret}</span>
               {/if}
             </div>
-            <ChordDiagram voicing={selectedVoicing} tuning={selectedTuning} chordName={activeChordSymbol} />
+            <ChordDiagram voicing={selectedVoicing} tuning={selectedTuning} chordName={activeChordSymbol} initialShowIntervals={showIntervals} />
           {/if}
         </div>
       </div>
@@ -920,6 +935,32 @@
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
+  }
+
+  .voicings-scroll-area.tablet {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    overflow: hidden;
+  }
+
+  .voicings-scroll-area.tablet .mobile-fretboard-layout {
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+
+  .voicings-scroll-area.tablet .finder-split {
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    overflow-y: auto;
+    margin-top: 0;
+    padding-right: 0;
+  }
+
+  .voicings-scroll-area.tablet .voicing-detail {
+    order: -1;
+    position: static;
   }
 
   .no-match-msg-browse {
@@ -1484,6 +1525,45 @@
     flex-shrink: 0;
     margin-right: 24px;
   }
+  .intervals-toggle {
+    margin-left: auto;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-label {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    transition: background 0.2s;
+    display: inline-block;
+    cursor: pointer;
+  }
+  .toggle-switch.on {
+    background: var(--accent);
+  }
+  .toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle-switch.on .toggle-knob {
+    transform: translateX(16px);
+  }
   .chord-info-name {
     font-size: 18px;
     font-weight: 700;
@@ -1629,6 +1709,7 @@
     -webkit-overflow-scrolling: touch;
     min-height: 0;
     margin-top: 12px;
+    padding-right: 12px;
   }
 
   .mobile-selector-col {

@@ -335,6 +335,13 @@ export function detectBarres(frets: number[]): Barre[] {
   const frettedFrets = frets.filter(f => f > 0);
   if (frettedFrets.length < 2) return barres;
 
+  // Find the lowest sounding string (not muted)
+  let lowestSounding = -1;
+  for (let s = 0; s < frets.length; s++) {
+    if (frets[s] >= 0) { lowestSounding = s; break; }
+  }
+  if (lowestSounding < 0) return barres;
+
   // Find all frets that appear on 2+ strings — each is a barre candidate
   const fretCounts = new Map<number, number[]>();
   for (let s = 0; s < frets.length; s++) {
@@ -344,15 +351,12 @@ export function detectBarres(frets: number[]): Barre[] {
     }
   }
 
-  // Only allow barre at the lowest fretted position (index finger) for standard chords.
-  // Exception: also allow a higher-fret barre if it's the highest fret and spans 3+ strings
-  // (e.g. 012333: barre at 3 with ring finger across top 3 strings).
   const minFret = Math.min(...frettedFrets);
   const maxFret = Math.max(...frettedFrets);
 
   for (const [fret, strings] of fretCounts) {
     if (strings.length < 2) continue;
-    // Only consider barres at min fret (index finger) or max fret (ring/pinky finger lay-flat)
+    // Only consider barres at min fret (index finger) or max fret (ring/pinky lay-flat)
     if (fret !== minFret && fret !== maxFret) continue;
     // For max-fret barre (not at min), require 3+ strings to be meaningful
     if (fret !== minFret && strings.length < 3) continue;
@@ -360,8 +364,22 @@ export function detectBarres(frets: number[]): Barre[] {
     const from = Math.min(...strings);
     const to = Math.max(...strings);
 
+    // A barre requires the finger to lay flat across strings.
+    // This is only possible if there are no open strings (fret 0)
+    // between the lowest sounding string and the barre's end.
+    // If any string from lowestSounding..to is open, the barre is impossible
+    // because the finger can't skip over open strings.
+    let hasOpenBelow = false;
+    for (let s = lowestSounding; s <= to; s++) {
+      if (frets[s] === 0) {
+        hasOpenBelow = true;
+        break;
+      }
+    }
+    if (hasOpenBelow) continue;
+
     // Verify all strings between from..to are fretted at >= this fret
-    // (open strings or muted strings break the barre)
+    // (muted strings break the barre)
     let validBarre = true;
     for (let s = from; s <= to; s++) {
       if (frets[s] < fret) {

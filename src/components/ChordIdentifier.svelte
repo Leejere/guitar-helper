@@ -111,48 +111,94 @@
       </div>
     </div>
 
-    {#if selectedPositions.length > 0}
+    {#if needsVertical}
       <div class="results-section">
-        <p class="info-msg">
-          Selected notes: <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
-        </p>
+        {#if selectedPositions.length > 0}
+          <p class="info-msg">
+            Selected notes: <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
+          </p>
 
-        {#if candidates.exact.length > 0}
-          <h3 class="results-heading">Matches</h3>
-          <div class="candidate-grid">
-            {#each candidates.exact as candidate}
-              <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name)}>
-                <span class="candidate-name">{displayAccidental(candidate.name)}</span>
-                <ChordDiagram
-                  voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
-                  tuning={selectedTuning}
-                  chordName={candidate.name}
-                />
-              </button>
-            {/each}
-          </div>
-        {/if}
+          {#if candidates.exact.length > 0}
+            <h3 class="results-heading">Matches</h3>
+            <div class="candidate-grid">
+              {#each candidates.exact as candidate}
+                <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name)}>
+                  <span class="candidate-name">{displayAccidental(candidate.name)}</span>
+                  <ChordDiagram
+                    voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
+                    tuning={selectedTuning}
+                    chordName={candidate.name}
+                  />
+                </button>
+              {/each}
+            </div>
+          {/if}
 
-        {#if candidates.vague.length > 0}
-          <h3 class="results-heading">Related chords</h3>
-          <div class="candidate-grid">
-            {#each candidates.vague as candidate}
-              <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name)}>
-                <span class="candidate-name">{displayAccidental(candidate.name)}</span>
-                <ChordDiagram
-                  voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
-                  tuning={selectedTuning}
-                  chordName={candidate.name}
-                />
-              </button>
-            {/each}
-          </div>
-        {/if}
+          {#if candidates.vague.length > 0}
+            <h3 class="results-heading">Related chords</h3>
+            <div class="candidate-grid">
+              {#each candidates.vague as candidate}
+                <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name)}>
+                  <span class="candidate-name">{displayAccidental(candidate.name)}</span>
+                  <ChordDiagram
+                    voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
+                    tuning={selectedTuning}
+                    chordName={candidate.name}
+                  />
+                </button>
+              {/each}
+            </div>
+          {/if}
 
-        {#if candidates.exact.length === 0 && candidates.vague.length === 0 && selectedPositions.length >= 2}
-          <p class="info-msg" style="margin-top: 8px;">No chord match found for this combination.</p>
+          {#if candidates.exact.length === 0 && candidates.vague.length === 0 && selectedPositions.length >= 2}
+            <p class="info-msg" style="margin-top: 8px;">No chord match found for this combination.</p>
+          {/if}
         {/if}
       </div>
+    {:else}
+      {#if selectedPositions.length > 0}
+        <div class="results-section">
+          <p class="info-msg">
+            Selected notes: <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
+          </p>
+
+          {#if candidates.exact.length > 0}
+            <h3 class="results-heading">Matches</h3>
+            <div class="candidate-grid">
+              {#each candidates.exact as candidate}
+                <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name)}>
+                  <span class="candidate-name">{displayAccidental(candidate.name)}</span>
+                  <ChordDiagram
+                    voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
+                    tuning={selectedTuning}
+                    chordName={candidate.name}
+                  />
+                </button>
+              {/each}
+            </div>
+          {/if}
+
+          {#if candidates.vague.length > 0}
+            <h3 class="results-heading">Related chords</h3>
+            <div class="candidate-grid">
+              {#each candidates.vague as candidate}
+                <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name)}>
+                  <span class="candidate-name">{displayAccidental(candidate.name)}</span>
+                  <ChordDiagram
+                    voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
+                    tuning={selectedTuning}
+                    chordName={candidate.name}
+                  />
+                </button>
+              {/each}
+            </div>
+          {/if}
+
+          {#if candidates.exact.length === 0 && candidates.vague.length === 0 && selectedPositions.length >= 2}
+            <p class="info-msg" style="margin-top: 8px;">No chord match found for this combination.</p>
+          {/if}
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
@@ -241,9 +287,7 @@
   .mobile-id-layout {
     display: flex;
     flex-direction: row;
-    gap: 16px;
-    align-items: flex-start;
-    justify-content: center;
+    gap: 24px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -256,19 +300,17 @@
   }
 
   .mobile-id-layout .results-section {
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: 200px;
+    flex: 1;
+    min-width: 200px;
     margin-top: 0;
   }
 
   .mobile-id-layout .candidate-grid {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 
   .mobile-id-layout .candidate-card {
     min-width: 0;
-    width: 100%;
   }
 
   @media (max-width: 768px) {

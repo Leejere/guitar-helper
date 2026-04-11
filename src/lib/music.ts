@@ -208,30 +208,14 @@ export function getAllFretboardNotes(tuningNotes: string[], fretCount: number): 
  * Compute the interval from root to a given note.
  * Returns short label like "1P", "3M", "5P", "b7", etc.
  */
-export function getIntervalLabel(root: string, note: string): string {
-  const interval = Interval.distance(root, Note.pitchClass(note));
-  return simplifyIntervalLabel(interval);
-}
+const SEMITONE_INTERVAL_LABELS = ['R', '♭2', '2', '♭3', '3', '4', '♭5', '5', '♯5', '6', '♭7', '7'];
 
-function simplifyIntervalLabel(interval: string): string {
-  const map: Record<string, string> = {
-    '1P': 'R',
-    '2m': 'b2',
-    '2M': '2',
-    '2A': '#2',
-    '3m': 'b3',
-    '3M': '3',
-    '4P': '4',
-    '4A': '#4',
-    '5d': 'b5',
-    '5P': '5',
-    '5A': '#5',
-    '6m': 'b6',
-    '6M': '6',
-    '7m': 'b7',
-    '7M': '7',
-  };
-  return map[interval] ?? interval;
+export function getIntervalLabel(root: string, note: string): string {
+  const rootChroma = Note.chroma(root);
+  const noteChroma = Note.chroma(note);
+  if (rootChroma === undefined || noteChroma === undefined) return '?';
+  const semitones = ((noteChroma - rootChroma) + 12) % 12;
+  return SEMITONE_INTERVAL_LABELS[semitones];
 }
 
 /**

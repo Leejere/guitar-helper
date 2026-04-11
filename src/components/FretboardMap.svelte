@@ -49,13 +49,12 @@
       </select>
     </div>
 
-    <div class="control-group">
-      <label for="mode-select">Display</label>
-      <select id="mode-select" bind:value={mode}>
-        <option value="notes">Note Names</option>
-        <option value="intervals">Intervals</option>
-      </select>
-    </div>
+    <label class="intervals-toggle">
+      <span class="toggle-label">Intervals</span>
+      <span class="toggle-switch" class:on={mode === 'intervals'} onclick={() => mode = mode === 'intervals' ? 'notes' : 'intervals'} role="switch" aria-checked={mode === 'intervals'} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); mode = mode === 'intervals' ? 'notes' : 'intervals'; } }}>
+        <span class="toggle-knob"></span>
+      </span>
+    </label>
 
     {#if mode === 'intervals'}
       <div class="control-group">
@@ -89,6 +88,43 @@
 </div>
 
 <style>
+  .intervals-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-label {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    transition: background 0.2s;
+    display: inline-block;
+    cursor: pointer;
+  }
+  .toggle-switch.on {
+    background: var(--accent);
+  }
+  .toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle-switch.on .toggle-knob {
+    transform: translateX(16px);
+  }
   .page-root {
     display: flex;
     flex-direction: column;

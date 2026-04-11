@@ -3,11 +3,33 @@
   import ChordFinder from './components/ChordFinder.svelte'
   import ChordIdentifier from './components/ChordIdentifier.svelte'
   import ShapeExplorer from './components/ShapeExplorer.svelte'
+  import ProgressionBuilder from './components/ProgressionBuilder.svelte'
+  import { progression } from './lib/progression.svelte'
   import type { CAGEDShape } from './lib/voicings'
 
-  type Tab = 'home' | 'map' | 'finder' | 'identifier' | 'shapes';
+  type Tab = 'home' | 'map' | 'finder' | 'identifier' | 'shapes' | 'progression';
   let activeTab: Tab = $state('home');
   let finderChord: string | undefined = $state(undefined);
+
+  // Check for shared progression URL on load
+  {
+    const hash = window.location.hash;
+    const match = hash.match(/^#progression=(.+)$/);
+    if (match) {
+      try {
+        const json = decodeURIComponent(escape(atob(match[1])));
+        const snap = JSON.parse(json);
+        if (snap && snap.cells && Array.isArray(snap.cells)) {
+          progression.loadFromSnapshot(snap);
+          activeTab = 'progression';
+          // Clean up the hash
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      } catch {
+        // Invalid URL data — ignore
+      }
+    }
+  }
 
   // Shape explorer navigation state
   let shapeNavShape: CAGEDShape | undefined = $state(undefined);
@@ -31,6 +53,7 @@
     { id: 'finder', label: 'Chord Finder' },
     { id: 'identifier', label: 'Chord Identifier' },
     { id: 'shapes', label: 'Shape Explorer' },
+    { id: 'progression', label: 'Progression' },
   ];
 
   const tiles = [
@@ -38,6 +61,7 @@
     { id: 'finder' as Tab, title: 'Chord Finder', description: 'Discover how to voice any chord — browse voicings by position, shape, and more.' },
     { id: 'identifier' as Tab, title: 'Chord Identifier', description: 'Tap frets on a virtual fretboard to find out what chord you\'re playing.' },
     { id: 'shapes' as Tab, title: 'Shape Explorer', description: 'Learn the CAGED system — find and master chord shapes at every position.' },
+    { id: 'progression' as Tab, title: 'Progression Builder', description: 'Build chord progressions by collecting voicings and arranging them in a grid.' },
   ];
 </script>
 
@@ -91,6 +115,13 @@
         initialShape={shapeNavShape}
         initialPosition={shapeNavPosition}
         initialVariantIdx={shapeNavVariantIdx}
+      />
+    {:else if activeTab === 'progression'}
+      <ProgressionBuilder
+        onNavigateToFinder={() => activeTab = 'finder'}
+        onNavigateToChord={navigateToChord}
+        onNavigateToIdentifier={() => activeTab = 'identifier'}
+        onNavigateToShapes={() => activeTab = 'shapes'}
       />
     {:else}
       <ChordIdentifier onChordSelect={navigateToChord} />

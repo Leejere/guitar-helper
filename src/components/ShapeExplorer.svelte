@@ -23,6 +23,7 @@
   const FB_RIGHT_PADDING = 20;
   const FB_SVG_WIDTH = FB_LEFT_PADDING + (FB_FRET_COUNT + 1) * FB_FRET_SPACING + FB_RIGHT_PADDING;
   const needsVertical = $derived(responsive.windowWidth < FB_SVG_WIDTH + 60);
+  const isTablet = $derived(needsVertical && responsive.windowWidth >= 768);
 
   function fretSelectorCenterX(fretNumber: number): number {
     const fret = Math.max(fretNumber, 0);
@@ -185,7 +186,7 @@
     } else {
       selectedPosition = fret;
       selectedResultIdx = null;
-      if (needsVertical) mobileView = 'detail';
+      if (needsVertical && !isTablet) mobileView = 'detail';
     }
   }
 
@@ -241,7 +242,7 @@
   {/if}
 
   {#if filterShape}
-    <div class="explorer-scroll-area">
+    <div class="explorer-scroll-area" class:tablet={isTablet}>
     {#snippet fretSelectorBtnContent(item: FretSelectorItem)}
       <span class="fret-selector-label">{item.position === 0 ? 'Open' : `Fret ${item.position}`}</span>
       <span class="fret-selector-main-name">{item.chordNames[0]}</span>
@@ -280,8 +281,8 @@
       </span>
     {/snippet}
 
-    <!-- Fretboard section: hidden on mobile detail view -->
-    {#if !(needsVertical && mobileView === 'detail')}
+    <!-- Fretboard section: hidden on phone detail view (tablet shows both) -->
+    {#if !(needsVertical && !isTablet && mobileView === 'detail')}
       {#if needsVertical}
         <!-- Mobile: vertical fretboard + side selectors (single scroll container) -->
         <div class="mobile-fretboard-layout">
@@ -359,12 +360,13 @@
     {/if}
 
     <!-- Mobile back button -->
-    {#if needsVertical && mobileView === 'detail'}
+    {#if needsVertical && !isTablet && mobileView === 'detail'}
       <button class="mobile-back-btn" onclick={() => mobileView = 'fretboard'}>&larr; Back to fretboard</button>
     {/if}
 
-    <!-- Detail section: always on desktop, only in detail view on mobile -->
-    {#if !(needsVertical && mobileView === 'fretboard') && shapeResults.length > 0}
+    <!-- Detail section: always on desktop/tablet, only in detail view on phone -->
+    {#if !(needsVertical && !isTablet && mobileView === 'fretboard') && shapeResults.length > 0}
+      <div class="detail-column">
       <div class="section-title">
         <span>
           {shapeResults.length} chord voicing{shapeResults.length !== 1 ? 's' : ''} for <strong>{filterShape} shape</strong>
@@ -431,6 +433,7 @@
           {/if}
         </div>
       </div>
+      </div>
     {/if}
     </div>
   {:else}
@@ -471,6 +474,39 @@
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
+  }
+
+  .explorer-scroll-area.tablet {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    overflow: hidden;
+  }
+
+  .explorer-scroll-area.tablet .mobile-fretboard-layout {
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+
+  .explorer-scroll-area.tablet .detail-column {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  .explorer-scroll-area.tablet .explorer-split {
+    flex-direction: column;
+    margin-top: 0;
+    padding-right: 0;
+  }
+
+  .explorer-scroll-area.tablet .section-title {
+    flex-shrink: 0;
+  }
+
+  .explorer-scroll-area.tablet .voicing-detail {
+    order: -1;
+    position: static;
   }
 
   .fretboard-scroll {
@@ -768,6 +804,7 @@
     -webkit-overflow-scrolling: touch;
     min-height: 0;
     margin-top: 12px;
+    padding-right: 12px;
   }
 
   .mobile-selector-col {
