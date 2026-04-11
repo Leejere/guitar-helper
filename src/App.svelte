@@ -4,7 +4,10 @@
   import ChordIdentifier from './components/ChordIdentifier.svelte'
   import ShapeExplorer from './components/ShapeExplorer.svelte'
   import ProgressionBuilder from './components/ProgressionBuilder.svelte'
-  import { progression } from './lib/progression.svelte'
+  import { progression, ProgressionState } from './lib/progression.svelte'
+  import { pool } from './lib/pool.svelte'
+  import { fretsToVoicing } from './lib/music'
+  import { STANDARD } from './lib/tunings'
   import { toast } from './lib/toast.svelte'
   import type { CAGEDShape } from './lib/voicings'
 
@@ -15,20 +18,56 @@
   // Check for shared progression URL on load
   {
     const hash = window.location.hash;
-    const match = hash.match(/^#progression=(.+)$/);
-    if (match) {
+    let loaded = false;
+
+    // Compact format: #p=title|chords|cells
+    const compactMatch = hash.match(/^#p=(.+)$/);
+    if (compactMatch) {
       try {
-        const json = decodeURIComponent(escape(atob(match[1])));
-        const snap = JSON.parse(json);
-        if (snap && snap.cells && Array.isArray(snap.cells)) {
-          progression.loadFromSnapshot(snap);
-          activeTab = 'progression';
-          // Clean up the hash
-          history.replaceState(null, '', window.location.pathname + window.location.search);
+        const decoded = decodeURIComponent(compactMatch[1]);
+        const parsed = ProgressionState.fromCompactUrl(decoded);
+        if (parsed) {
+          // Add chords to pool and build key mapping
+          const keys: string[] = [];
+          for (const c of parsed.chords) {
+            const voicing = fretsToVoicing(c.frets, STANDARD.notes);
+            pool.add(voicing, STANDARD, c.chordName);
+            keys.push(pool.keyFor(c.frets, c.chordName));
+          }
+          // Build cells from indices
+          const cellKeys = parsed.cells.map(idx => idx !== null && idx >= 0 && idx < keys.length ? keys[idx] : null);
+          progression.loadFromSnapshot({
+            title: parsed.title,
+            poolEntries: [],
+            cells: cellKeys,
+          });
+          loaded = true;
         }
       } catch {
         // Invalid URL data — ignore
       }
+    }
+
+    // Legacy format: #progression=base64json
+    if (!loaded) {
+      const legacyMatch = hash.match(/^#progression=(.+)$/);
+      if (legacyMatch) {
+        try {
+          const json = decodeURIComponent(escape(atob(legacyMatch[1])));
+          const snap = JSON.parse(json);
+          if (snap && snap.cells && Array.isArray(snap.cells)) {
+            progression.loadFromSnapshot(snap);
+            loaded = true;
+          }
+        } catch {
+          // Invalid URL data — ignore
+        }
+      }
+    }
+
+    if (loaded) {
+      activeTab = 'progression';
+      history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   }
 

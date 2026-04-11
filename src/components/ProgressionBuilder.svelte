@@ -458,10 +458,8 @@
   let urlCopied = $state(false);
 
   function handleGenerateUrl() {
-    const snap = progression.toSnapshot();
-    const json = JSON.stringify(snap);
-    const encoded = btoa(unescape(encodeURIComponent(json)));
-    const url = `${window.location.origin}${window.location.pathname}#progression=${encoded}`;
+    const compact = progression.toCompactUrl();
+    const url = `${window.location.origin}${window.location.pathname}#p=${encodeURIComponent(compact)}`;
     navigator.clipboard.writeText(url).then(() => {
       urlCopied = true;
       setTimeout(() => { urlCopied = false; }, 2000);

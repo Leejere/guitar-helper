@@ -23,7 +23,7 @@ function makeCells(count: number): ProgressionCell[] {
   return Array.from({ length: count }, () => makeEmptyCell());
 }
 
-class ProgressionState {
+export class ProgressionState {
   cells: ProgressionCell[] = $state([]);
   title: string = $state('My Progression');
   columns = 4;
@@ -216,6 +216,56 @@ class ProgressionState {
       poolEntries,
       cells: this.cells.map(c => c.poolKey),
     };
+  }
+
+  /** Compact URL encoding: "title|name.frets,name.frets|cellIndices" */
+  toCompactUrl(): string {
+    // Collect unique pool keys used in cells (preserving order)
+    const usedKeys: string[] = [];
+    const keyIndex = new Map<string, number>();
+    for (const c of this.cells) {
+      if (c.poolKey && !keyIndex.has(c.poolKey)) {
+        keyIndex.set(c.poolKey, usedKeys.length);
+        usedKeys.push(c.poolKey);
+      }
+    }
+    // Encode each chord: chordName.fretString
+    const chords = usedKeys.map(key => {
+      const e = pool.get(key)!;
+      const fretStr = e.voicing.frets.map((f: number) => f === -1 ? 'x' : f.toString(16)).join('');
+      return e.chordName + '.' + fretStr;
+    });
+    // Encode cells: trim trailing empties, use index or _ for empty
+    let lastFilled = -1;
+    for (let i = this.cells.length - 1; i >= 0; i--) {
+      if (this.cells[i].poolKey !== null) { lastFilled = i; break; }
+    }
+    const cellParts: string[] = [];
+    for (let i = 0; i <= lastFilled; i++) {
+      const pk = this.cells[i].poolKey;
+      cellParts.push(pk ? keyIndex.get(pk)!.toString(36) : '_');
+    }
+    return [this.title, chords.join(','), cellParts.join('')].join('|');
+  }
+
+  /** Decode compact URL format */
+  static fromCompactUrl(encoded: string): { title: string; chords: { chordName: string; frets: number[] }[]; cells: (number | null)[] } | null {
+    const parts = encoded.split('|');
+    if (parts.length !== 3) return null;
+    const [title, chordsPart, cellsPart] = parts;
+    const chords = chordsPart ? chordsPart.split(',').map(s => {
+      const dotIdx = s.lastIndexOf('.');
+      if (dotIdx === -1) return null;
+      const chordName = s.slice(0, dotIdx);
+      const fretStr = s.slice(dotIdx + 1);
+      const frets = [...fretStr].map(ch => ch === 'x' ? -1 : parseInt(ch, 16));
+      if (frets.some(f => isNaN(f))) return null;
+      return { chordName, frets };
+    }) : [];
+    if (chords.some(c => c === null)) return null;
+    const cells = [...cellsPart].map(ch => ch === '_' ? null : parseInt(ch, 36));
+    if (cells.some(c => c !== null && isNaN(c as number))) return null;
+    return { title, chords: chords as { chordName: string; frets: number[] }[], cells };
   }
 
   /** Load state from a URL snapshot */
