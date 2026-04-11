@@ -9,7 +9,11 @@ export interface PoolEntry {
   key: string;
 }
 
-function makeKey(frets: number[]): string {
+function makeKey(frets: number[], chordName: string): string {
+  return frets.map(f => (f === -1 ? 'x' : String(f))).join(',') + ':' + chordName;
+}
+
+function makeLegacyKey(frets: number[]): string {
   return frets.map(f => (f === -1 ? 'x' : String(f))).join(',');
 }
 
@@ -34,12 +38,12 @@ class VoicingPool {
     return this.keySet.has(key);
   }
 
-  hasByFrets(frets: number[]): boolean {
-    return this.keySet.has(makeKey(frets));
+  hasByFrets(frets: number[], chordName: string): boolean {
+    return this.keySet.has(makeKey(frets, chordName));
   }
 
   add(voicing: Voicing, tuning: Tuning, chordName: string) {
-    const key = makeKey(voicing.frets);
+    const key = makeKey(voicing.frets, chordName);
     if (this.keySet.has(key)) return;
     this.keySet.add(key);
     this.entries.push({ voicing, tuning, chordName, key });
@@ -64,8 +68,13 @@ class VoicingPool {
     this.persist();
   }
 
-  keyFor(frets: number[]): string {
-    return makeKey(frets);
+  keyFor(frets: number[], chordName: string): string {
+    return makeKey(frets, chordName);
+  }
+
+  /** Find an entry by legacy (frets-only) key — for migrating old data */
+  findByLegacyKey(legacyKey: string): PoolEntry | undefined {
+    return this.entries.find(e => makeLegacyKey(e.voicing.frets) === legacyKey);
   }
 
   private persist() {
@@ -89,7 +98,7 @@ class VoicingPool {
       const data: StoredEntry[] = JSON.parse(raw);
       for (const d of data) {
         const tuning = ALL_TUNINGS.find(t => t.name === d.tuningName) ?? STANDARD;
-        const key = makeKey(d.voicing.frets);
+        const key = makeKey(d.voicing.frets, d.chordName);
         if (!this.keySet.has(key)) {
           this.keySet.add(key);
           this.entries.push({ voicing: d.voicing, tuning, chordName: d.chordName, key });

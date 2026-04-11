@@ -29,7 +29,7 @@
     return info.tonic || null;
   });
 
-  let poolKey = $derived(pool.keyFor(voicing.frets));
+  let poolKey = $derived(pool.keyFor(voicing.frets, chordName ?? ''));
   let isInPool = $derived(pool.entries.some(e => e.key === poolKey));
 
   const stringCount = 6;

@@ -172,7 +172,7 @@
       });
       if (voicings.length > 0) {
         pool.add(voicings[0], STANDARD, entry.symbol);
-        const key = pool.keyFor(voicings[0].frets);
+        const key = pool.keyFor(voicings[0].frets, entry.symbol);
         progression.pushToCell(key, idx);
       }
     } finally {

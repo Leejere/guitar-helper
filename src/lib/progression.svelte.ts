@@ -190,10 +190,19 @@ class ProgressionState {
       pool.add(pe.voicing, tuning, pe.chordName);
     }
     // Build cells
-    this.cells = snap.cells.map(poolKey => ({
-      id: genId(),
-      poolKey: poolKey && pool.has(poolKey) ? poolKey : null,
-    }));
+    this.cells = snap.cells.map(poolKey => {
+      let resolved: string | null = null;
+      if (poolKey) {
+        if (pool.has(poolKey)) {
+          resolved = poolKey;
+        } else {
+          // Migration: try legacy frets-only key
+          const legacy = pool.findByLegacyKey(poolKey);
+          if (legacy) resolved = legacy.key;
+        }
+      }
+      return { id: genId(), poolKey: resolved };
+    });
     this.title = snap.title || 'My Progression';
     this.persist();
     try { localStorage.setItem(TITLE_KEY, this.title); } catch {}
@@ -233,7 +242,16 @@ class ProgressionState {
           id = genId(); // replace duplicate with fresh ID
         }
         seen.add(id);
-        const poolKey = d.poolKey && pool.has(d.poolKey) ? d.poolKey : null;
+        let poolKey: string | null = null;
+        if (d.poolKey) {
+          if (pool.has(d.poolKey)) {
+            poolKey = d.poolKey;
+          } else {
+            // Migration: try to find by legacy frets-only key
+            const legacy = pool.findByLegacyKey(d.poolKey);
+            if (legacy) poolKey = legacy.key;
+          }
+        }
         return { id, poolKey };
       });
       this.persist(); // save cleaned-up IDs
