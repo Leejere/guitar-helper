@@ -15,6 +15,7 @@
   import MiniChordDiagram from './MiniChordDiagram.svelte';
   import ButtonFilter from './ButtonFilter.svelte';
   import { responsive } from '../lib/responsive.svelte';
+  import { shapeExplorerState as ses } from '../lib/shape-explorer-state.svelte';
 
   // Fretboard layout constants (must match Fretboard.svelte defaults)
   const FB_LEFT_PADDING = 75;
@@ -74,14 +75,23 @@
     return opts;
   }
 
-  // --- Filter state ---
-  let filterShape: CAGEDShape | '' = $state(initialShape ?? '');
-  let filterVariants: string[] = $state([]); // displaySuffix values, empty = all
-  let selectedPosition: number | null = $state(initialPosition ?? null);
-  let selectedResultIdx: number | null = $state(initialVariantIdx ?? null);
+  // --- Filter state (persisted via singleton) ---
+  let filterShape: CAGEDShape | '' = $state(initialShape ?? ses.filterShape);
+  let filterVariants: string[] = $state(initialShape ? [] : [...ses.filterVariants]);
+  let selectedPosition: number | null = $state(initialPosition ?? ses.selectedPosition);
+  let selectedResultIdx: number | null = $state(initialVariantIdx ?? ses.selectedResultIdx);
 
   // Mobile view state
   let mobileView: 'fretboard' | 'detail' = $state('fretboard');
+
+  // Auto-persist filter state
+  $effect(() => {
+    ses.filterShape = filterShape;
+    ses.filterVariants = filterVariants;
+    ses.selectedPosition = selectedPosition;
+    ses.selectedResultIdx = selectedResultIdx;
+    ses.persist();
+  });
 
   let variantOptions = $derived(getVariantOptions(filterShape));
 

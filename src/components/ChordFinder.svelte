@@ -10,6 +10,7 @@
   import MiniChordDiagram from './MiniChordDiagram.svelte';
   import ButtonFilter from './ButtonFilter.svelte';
   import { responsive } from '../lib/responsive.svelte';
+  import { chordFinderState as cfs } from '../lib/chord-finder-state.svelte';
 
   // Fretboard layout constants (must match Fretboard.svelte non-compact mode)
   const FB_LEFT_PADDING = 75;
@@ -32,20 +33,20 @@
 
   let { initialChord, onNavigateToShape }: Props = $props();
 
-  // --- Shared state ---
-  let selectedTuning = $state(STANDARD);
+  // --- Shared state (persisted via singleton) ---
+  let selectedTuning = $state(cfs.selectedTuning);
 
   // --- Phase: 'browse' or 'voicings' ---
-  let phase: 'browse' | 'voicings' = $state('browse');
+  let phase: 'browse' | 'voicings' = $state(cfs.phase);
 
   // --- Browse phase state ---
-  let searchText = $state('');
-  let filterRoots: string[] = $state([]);
-  let filterKeys: string[] = $state([]);
-  let filterCategories: string[] = $state([]);
-  let filterVoicings: string[] = $state([]);
-  let filterScaleRoot = $state('');
-  let filterScaleMode = $state('');
+  let searchText = $state(cfs.searchText);
+  let filterRoots: string[] = $state([...cfs.filterRoots]);
+  let filterKeys: string[] = $state([...cfs.filterKeys]);
+  let filterCategories: string[] = $state([...cfs.filterCategories]);
+  let filterVoicings: string[] = $state([...cfs.filterVoicings]);
+  let filterScaleRoot = $state(cfs.filterScaleRoot);
+  let filterScaleMode = $state(cfs.filterScaleMode);
 
   let filterScale = $derived(
     filterScaleRoot && filterScaleMode ? `${filterScaleRoot} ${filterScaleMode}` : ''
@@ -58,10 +59,10 @@
   const allKeys = getAllKeys();
 
   // --- Voicings phase state ---
-  let activeChordSymbol = $state('');
+  let activeChordSymbol = $state(cfs.activeChordSymbol);
   let voicings: Voicing[] = $state([]);
   let errorMsg = $state('');
-  let selectedIdx: number | null = $state(null);
+  let selectedIdx: number | null = $state(cfs.selectedIdx);
   let chordNotes: string[] = $state([]);
   let chordRoot: string | null = $state(null);
   let filterPositions: { string: number; fret: number }[] = $state([]);
@@ -71,13 +72,31 @@
   let collapsedGroups = $state(new Set<string>()); // collapsed position group labels
 
   // Fret selection: null = nothing selected (list hidden), 'all' = show all by playability, or position group string
-  let selectedFretFilter: string | null = $state(null);
+  let selectedFretFilter: string | null = $state(cfs.selectedFretFilter);
 
   // Mobile view state
   let mobileView: 'fretboard' | 'detail' = $state('fretboard');
 
   // Intervals toggle
-  let showIntervals = $state(false);
+  let showIntervals = $state(cfs.showIntervals);
+
+  // Auto-persist browse/voicing state
+  $effect(() => {
+    cfs.selectedTuning = selectedTuning;
+    cfs.phase = phase;
+    cfs.searchText = searchText;
+    cfs.filterRoots = filterRoots;
+    cfs.filterKeys = filterKeys;
+    cfs.filterCategories = filterCategories;
+    cfs.filterVoicings = filterVoicings;
+    cfs.filterScaleRoot = filterScaleRoot;
+    cfs.filterScaleMode = filterScaleMode;
+    cfs.activeChordSymbol = activeChordSymbol;
+    cfs.showIntervals = showIntervals;
+    cfs.selectedFretFilter = selectedFretFilter;
+    cfs.selectedIdx = selectedIdx;
+    cfs.persist();
+  });
 
   // Clear tone filter when position filter changes
   $effect(() => {
@@ -351,6 +370,7 @@
   }
 
   // When navigated to from ChordIdentifier, auto-select the chord
+  // Also restore voicings from persisted state on mount
   $effect(() => {
     const chord = initialChord;
     if (chord) {
@@ -358,6 +378,16 @@
         activeChordSymbol = chord;
         loadVoicings(chord);
         phase = 'voicings';
+      });
+    } else if (phase === 'voicings' && activeChordSymbol && voicings.length === 0 && !errorMsg) {
+      untrack(() => {
+        const savedFretFilter = cfs.selectedFretFilter;
+        const savedIdx = cfs.selectedIdx;
+        loadVoicings(activeChordSymbol);
+        selectedFretFilter = savedFretFilter;
+        if (savedIdx !== null && savedIdx >= 0 && savedIdx < voicings.length) {
+          selectedIdx = savedIdx;
+        }
       });
     }
   });

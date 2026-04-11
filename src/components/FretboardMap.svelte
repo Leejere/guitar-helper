@@ -4,18 +4,19 @@
   import { ALL_ROOTS, displayAccidental } from '../lib/music';
   import { exportFretboardPdf } from '../lib/pdf';
   import { responsive } from '../lib/responsive.svelte';
+  import { fretboardMapState } from '../lib/fretboard-map-state.svelte';
 
   // Fretboard SVG width (must match Fretboard.svelte defaults: leftPadding=50, fretSpacing=75, fretCount=15, rightPadding=20)
   const FB_SVG_WIDTH = 50 + 16 * 75 + 20; // 1270
   const needsVertical = $derived(responsive.windowWidth < FB_SVG_WIDTH + 60);
 
-  let selectedTuning = $state(STANDARD);
-  let mode: 'notes' | 'intervals' = $state('notes');
-  let rootNote = $state('C');
+  let selectedTuning = $derived(fretboardMapState.selectedTuning);
+  let mode = $derived(fretboardMapState.mode);
+  let rootNote = $derived(fretboardMapState.rootNote);
 
   function handleTuningChange(e: Event) {
     const name = (e.target as HTMLSelectElement).value;
-    selectedTuning = ALL_TUNINGS.find(t => t.name === name) ?? STANDARD;
+    fretboardMapState.setTuning(ALL_TUNINGS.find(t => t.name === name) ?? STANDARD);
   }
 
   async function handleExportPdf() {
@@ -51,7 +52,7 @@
 
     <label class="intervals-toggle">
       <span class="toggle-label">Intervals</span>
-      <span class="toggle-switch" class:on={mode === 'intervals'} onclick={() => mode = mode === 'intervals' ? 'notes' : 'intervals'} role="switch" aria-checked={mode === 'intervals'} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); mode = mode === 'intervals' ? 'notes' : 'intervals'; } }}>
+      <span class="toggle-switch" class:on={mode === 'intervals'} onclick={() => fretboardMapState.setMode(mode === 'intervals' ? 'notes' : 'intervals')} role="switch" aria-checked={mode === 'intervals'} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fretboardMapState.setMode(mode === 'intervals' ? 'notes' : 'intervals'); } }}>
         <span class="toggle-knob"></span>
       </span>
     </label>
@@ -59,7 +60,7 @@
     {#if mode === 'intervals'}
       <div class="control-group">
         <label for="root-select">Root</label>
-        <select id="root-select" bind:value={rootNote}>
+        <select id="root-select" value={rootNote} onchange={(e) => fretboardMapState.setRootNote((e.target as HTMLSelectElement).value)}>
           {#each ALL_ROOTS as r}
             <option value={r}>{displayAccidental(r)}</option>
           {/each}

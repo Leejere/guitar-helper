@@ -6,6 +6,7 @@
   import { playStrum } from '../lib/audio';
   import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
   import { responsive } from '../lib/responsive.svelte';
+  import { identifierState } from '../lib/identifier-state.svelte';
 
   // Fretboard SVG width (must match Fretboard.svelte defaults: leftPadding=50, fretSpacing=75, fretCount=15, rightPadding=20)
   const FB_SVG_WIDTH = 50 + 16 * 75 + 20; // 1270
@@ -16,32 +17,19 @@
 
   let { onChordSelect }: Props = $props();
 
-  let selectedTuning = $state(STANDARD);
-  let selectedPositions: { string: number; fret: number }[] = $state([]);
+  let selectedTuning = $derived(identifierState.selectedTuning);
+  let selectedPositions = $derived(identifierState.selectedPositions);
 
   const needsVertical = $derived(responsive.windowWidth < FB_SVG_WIDTH + 60);
 
   function handleTuningChange(e: Event) {
     const name = (e.target as HTMLSelectElement).value;
-    selectedTuning = ALL_TUNINGS.find(t => t.name === name) ?? STANDARD;
-    selectedPositions = [];
+    const tuning = ALL_TUNINGS.find(t => t.name === name) ?? STANDARD;
+    identifierState.setTuning(tuning);
   }
 
   function handlePositionClick(stringIdx: number, fret: number) {
-    const existing = selectedPositions.findIndex(
-      p => p.string === stringIdx && p.fret === fret
-    );
-
-    if (existing !== -1) {
-      // Toggle off
-      selectedPositions = selectedPositions.filter((_, i) => i !== existing);
-    } else {
-      // Remove any existing selection on the same string, add new one
-      selectedPositions = [
-        ...selectedPositions.filter(p => p.string !== stringIdx),
-        { string: stringIdx, fret },
-      ];
-    }
+    identifierState.togglePosition(stringIdx, fret);
   }
 
   function getSelectedNotes(): string[] {
@@ -64,7 +52,7 @@
   });
 
   function clearSelection() {
-    selectedPositions = [];
+    identifierState.clear();
   }
 
   async function handlePlay() {
