@@ -67,6 +67,31 @@
     }
   }
 
+  function handleQuickAddToProgression(entry: ChordEntry) {
+    quickAddingSymbol = entry.symbol;
+    try {
+      const chord = getChord(normalizeInput(entry.symbol));
+      if (!chord || chord.empty || !chord.notes?.length) return;
+      const voicings = findVoicings(chord.notes, {
+        tuning: STANDARD.notes,
+        maxFret: 15,
+        maxSpan: 4,
+        maxResults: 1,
+        requiredBass: entry.bassNote,
+      });
+      if (voicings.length > 0) {
+        pool.add(voicings[0], STANDARD, entry.symbol);
+        const key = pool.keyFor(voicings[0].frets, entry.symbol);
+        progression.pushFromPool(key);
+      }
+    } finally {
+      quickAddingSymbol = null;
+      quickSearch = '';
+      quickResults = [];
+      quickDropdownOpen = false;
+    }
+  }
+
   function handleQuickNavigate(entry: ChordEntry) {
     quickSearch = '';
     quickResults = [];
@@ -123,6 +148,31 @@
       }
     }
     reposition();
+    return { destroy() {} };
+  }
+
+  /** Position dropdown using fixed positioning to escape overflow:hidden containers */
+  function positionFixedDropdown(node: HTMLElement) {
+    const parent = node.parentElement!;
+    const parentRect = parent.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const pad = 8;
+    node.style.position = 'fixed';
+    node.style.top = (parentRect.bottom + 2) + 'px';
+    node.style.zIndex = '50';
+    if (vw < 480) {
+      node.style.left = pad + 'px';
+      node.style.right = pad + 'px';
+      node.style.width = 'auto';
+    } else {
+      node.style.left = parentRect.left + 'px';
+      node.style.width = Math.max(parentRect.width, 240) + 'px';
+      // Clamp to right edge
+      const rect = node.getBoundingClientRect();
+      if (rect.right > vw - pad) {
+        node.style.left = Math.max(pad, vw - pad - rect.width) + 'px';
+      }
+    }
     return { destroy() {} };
   }
 
@@ -531,7 +581,7 @@
           onkeydown={handleQuickKeydown}
         />
         {#if quickDropdownOpen}
-          <div class="quick-dropdown">
+          <div class="quick-dropdown" use:positionFixedDropdown>
             {#each quickResults as entry (entry.symbol)}
               <div class="quick-item">
                 <span class="quick-item-name">{displayAccidental(entry.symbol)}</span>
@@ -539,10 +589,16 @@
                 <div class="quick-item-actions">
                   <button
                     class="quick-action-btn add"
-                    title="Add best voicing to pool"
+                    title="Add to pool"
                     disabled={quickAddingSymbol === entry.symbol}
                     onclick={() => handleQuickAdd(entry)}
                   >+</button>
+                  <button
+                    class="quick-action-btn prog"
+                    title="Add to progression"
+                    disabled={quickAddingSymbol === entry.symbol}
+                    onclick={() => handleQuickAddToProgression(entry)}
+                  >▶</button>
                   <button
                     class="quick-action-btn go"
                     title="Browse voicings"
@@ -596,7 +652,7 @@
             onkeydown={handleQuickKeydown}
           />
           {#if quickDropdownOpen}
-            <div class="quick-dropdown">
+            <div class="quick-dropdown" use:positionFixedDropdown>
               {#each quickResults as entry (entry.symbol)}
                 <div class="quick-item">
                   <span class="quick-item-name">{displayAccidental(entry.symbol)}</span>
@@ -604,10 +660,16 @@
                   <div class="quick-item-actions">
                     <button
                       class="quick-action-btn add"
-                      title="Add best voicing to pool"
+                      title="Add to pool"
                       disabled={quickAddingSymbol === entry.symbol}
                       onclick={() => handleQuickAdd(entry)}
                     >+</button>
+                    <button
+                      class="quick-action-btn prog"
+                      title="Add to progression"
+                      disabled={quickAddingSymbol === entry.symbol}
+                      onclick={() => handleQuickAddToProgression(entry)}
+                    >▶</button>
                     <button
                       class="quick-action-btn go"
                       title="Browse voicings"
@@ -917,6 +979,7 @@
     top: 100%;
     left: 0;
     right: 0;
+    min-width: 240px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -980,6 +1043,14 @@
     cursor: default;
   }
   .quick-action-btn.add:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  }
+  .quick-action-btn.prog {
+    font-size: 11px;
+  }
+  .quick-action-btn.prog:hover:not(:disabled) {
     border-color: var(--accent);
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 8%, var(--bg));

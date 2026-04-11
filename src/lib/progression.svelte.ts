@@ -160,6 +160,18 @@ class ProgressionState {
     return this.cells.some(c => c.poolKey === poolKey);
   }
 
+  /** Remove all occurrences of a pool key from the progression */
+  removePoolKey(poolKey: string) {
+    let changed = false;
+    for (let i = 0; i < this.cells.length; i++) {
+      if (this.cells[i].poolKey === poolKey) {
+        this.cells[i] = { ...this.cells[i], poolKey: null };
+        changed = true;
+      }
+    }
+    if (changed) this.persist();
+  }
+
   /** Get the PoolEntry for a cell */
   getEntry(idx: number): PoolEntry | undefined {
     const key = this.cells[idx]?.poolKey;

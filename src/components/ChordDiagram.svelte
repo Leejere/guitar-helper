@@ -3,6 +3,7 @@
   import { displayAccidental, getIntervalLabel } from '../lib/music';
   import { playStrum } from '../lib/audio';
   import { pool } from '../lib/pool.svelte';
+  import { progression } from '../lib/progression.svelte';
   import type { Voicing } from '../lib/voicings';
   import type { Tuning } from '../lib/tunings';
 
@@ -31,6 +32,17 @@
 
   let poolKey = $derived(pool.keyFor(voicing.frets, chordName ?? ''));
   let isInPool = $derived(pool.entries.some(e => e.key === poolKey));
+  let isInProgression = $derived(progression.hasPoolKey(poolKey));
+
+  function toggleProgression(e: MouseEvent) {
+    e.stopPropagation();
+    if (isInProgression) {
+      progression.removePoolKey(poolKey);
+    } else {
+      if (!isInPool) pool.add(voicing, tuning, chordName ?? '');
+      progression.pushFromPool(poolKey);
+    }
+  }
 
   const stringCount = 6;
   const stringSpacing = 22;
@@ -115,6 +127,14 @@
       onclick={(e) => { e.stopPropagation(); if (isInPool) pool.remove(poolKey); else pool.add(voicing, tuning, chordName ?? ''); }}
     >
       {isInPool ? '−' : '+'}
+    </button>
+    <button
+      class="prog-btn"
+      class:in-prog={isInProgression}
+      title={isInProgression ? 'Remove from progression' : 'Add to progression'}
+      onclick={toggleProgression}
+    >
+      {isInProgression ? '■' : '▶'}
     </button>
   {/if}
   <svg
@@ -314,6 +334,39 @@
     color: var(--bg);
   }
   .pool-btn.in-pool:hover {
+    opacity: 0.8;
+  }
+
+  .prog-btn {
+    position: absolute;
+    top: -4px;
+    right: 26px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all 0.15s;
+    z-index: 1;
+  }
+  .prog-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .prog-btn.in-prog {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+  .prog-btn.in-prog:hover {
     opacity: 0.8;
   }
 
