@@ -188,6 +188,7 @@ export function findVoicings(
       }
 
       // Check no inner mutes: once we start playing, mutes can only be on the edges
+      // Allow at most 1 inner muted string (common guitar technique: mute with adjacent finger)
       let firstPlayed = -1;
       let lastPlayed = -1;
       for (let i = 0; i < current.length; i++) {
@@ -198,9 +199,11 @@ export function findVoicings(
       }
       if (firstPlayed === -1) return; // all muted
 
+      let innerMutes = 0;
       for (let i = firstPlayed; i <= lastPlayed; i++) {
-        if (current[i] === -1) return; // inner mute
+        if (current[i] === -1) innerMutes++;
       }
+      if (innerMutes > 1) return; // too many inner mutes
 
       // For slash chords: lowest sounding note must match the required bass
       if (requiredBassChroma !== undefined) {
@@ -545,6 +548,15 @@ function scoreVoicing(v: Voicing, rootSemitone: number | undefined, tuning: stri
     if (v.frets[s] === -1) {
       // String 0 (low E) = least penalty, string 5 (high E) = most penalty
       score -= 5 + s * 2;
+    }
+  }
+
+  // Extra penalty for inner muted strings (muted between two sounding strings)
+  {
+    const firstSounding = v.frets.findIndex(f => f !== -1);
+    const lastSounding = v.frets.length - 1 - [...v.frets].reverse().findIndex(f => f !== -1);
+    for (let s = firstSounding + 1; s < lastSounding; s++) {
+      if (v.frets[s] === -1) score -= 15;
     }
   }
 

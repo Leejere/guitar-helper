@@ -501,16 +501,53 @@
     selectedCells = next;
   }
 
+  let sweepStartIdx: number | null = $state(null);
+
+  const sortedPool = $derived(
+    [...pool.entries].sort((a, b) => {
+      const nameCompare = a.chordName.localeCompare(b.chordName);
+      if (nameCompare !== 0) return nameCompare;
+      return a.voicing.rank - b.voicing.rank;
+    })
+  );
+
+  let clearPoolConfirm = $state(false);
+
+  function handleClearPool() {
+    if (!clearPoolConfirm) {
+      clearPoolConfirm = true;
+      setTimeout(() => { clearPoolConfirm = false; }, 3000);
+      return;
+    }
+    // Also clear progression cells that reference pool entries
+    for (let i = 0; i < progression.cells.length; i++) {
+      if (progression.cells[i].poolKey !== null) {
+        progression.returnFromProgression(i);
+      }
+    }
+    pool.clear();
+    clearPoolConfirm = false;
+  }
+
   function startSweep(idx: number) {
     if (!selectMode) return;
     sweeping = true;
     swept = false;
+    sweepStartIdx = idx;
   }
 
   function sweepOver(idx: number) {
     if (!sweeping) return;
-    swept = true;
-    if (!selectedCells.has(idx)) {
+    if (!swept && idx !== sweepStartIdx) {
+      // First move to a different cell — also select the start cell
+      swept = true;
+      if (sweepStartIdx !== null && !selectedCells.has(sweepStartIdx)) {
+        const next = new Set(selectedCells);
+        next.add(sweepStartIdx);
+        selectedCells = next;
+      }
+    }
+    if (swept && !selectedCells.has(idx)) {
       const next = new Set(selectedCells);
       next.add(idx);
       selectedCells = next;
@@ -769,6 +806,12 @@
         <div class="pool-header">
           <span class="pool-title">Pool</span>
           <span class="pool-count">{pool.entries.length}</span>
+          {#if pool.entries.length > 0}
+            <button
+              class="btn btn-small {clearPoolConfirm ? 'btn-danger' : 'btn-secondary'} pool-clear-btn"
+              onclick={handleClearPool}
+            >{clearPoolConfirm ? 'Confirm clear?' : 'Clear pool'}</button>
+          {/if}
           {#if isMobile}
             <button class="pool-close-btn" onclick={() => poolCollapsed = true} aria-label="Close pool">
               ✕
@@ -828,7 +871,7 @@
           {/if}
         </div>
         <div class="pool-list">
-          {#each pool.entries as entry (entry.key)}
+          {#each sortedPool as entry (entry.key)}
             <div
               class="pool-card"
               draggable={!isMobile}
@@ -1398,6 +1441,11 @@
   }
   .pool-close-btn:hover {
     background: color-mix(in srgb, var(--text-muted) 15%, var(--bg));
+  }
+  .pool-clear-btn {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 2px 8px;
   }
 
   /* === Progression Column === */

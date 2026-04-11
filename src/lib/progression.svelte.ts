@@ -51,8 +51,12 @@ class ProgressionState {
     const emptyIdx = this.cells.findIndex(c => c.poolKey === null);
     if (emptyIdx !== -1) {
       this.cells[emptyIdx] = { ...this.cells[emptyIdx], poolKey };
+      // Auto-add an empty cell if the last cell was just filled
+      if (emptyIdx === this.cells.length - 1) {
+        this.cells.push(makeEmptyCell());
+      }
     } else {
-      this.cells.push({ id: genId(), poolKey });
+      this.cells.push({ id: genId(), poolKey }, makeEmptyCell());
     }
     this.persist();
   }
@@ -62,6 +66,10 @@ class ProgressionState {
     if (idx < 0 || idx >= this.cells.length) return;
     if (this.cells[idx].poolKey !== null) return; // cell occupied
     this.cells[idx] = { ...this.cells[idx], poolKey };
+    // Auto-add an empty cell if the last cell was just filled
+    if (idx === this.cells.length - 1) {
+      this.cells.push(makeEmptyCell());
+    }
     this.persist();
   }
 
@@ -113,9 +121,11 @@ class ProgressionState {
     this.persist();
   }
 
-  /** Add more empty cells at the end */
-  addMoreCells(count: number) {
-    this.cells.push(...makeCells(count));
+  /** Add empty cells to fill the current row, then add a full next row */
+  addMoreCells(cols: number) {
+    const partial = this.cells.length % cols;
+    const toFillRow = partial === 0 ? 0 : cols - partial;
+    this.cells.push(...makeCells(toFillRow + cols));
     this.persist();
   }
 
