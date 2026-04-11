@@ -22,8 +22,9 @@
 
   let frettedFrets = $derived(voicing.frets.filter(f => f > 0));
   let minFret = $derived(frettedFrets.length > 0 ? Math.min(...frettedFrets) : 1);
+  let maxFret = $derived(frettedFrets.length > 0 ? Math.max(...frettedFrets) : 4);
   let startFret = $derived(minFret <= 2 ? 1 : minFret);
-  let displayFretCount = 4;
+  let displayFretCount = $derived(Math.max(4, maxFret - startFret + 1));
   let displayFrets = $derived(Array.from({ length: displayFretCount }, (_, i) => i + startFret));
 
   let svgWidth = $derived(leftPadding + (stringCount - 1) * stringSpacing + rightPadding);
