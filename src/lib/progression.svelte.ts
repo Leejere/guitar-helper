@@ -99,6 +99,14 @@ class ProgressionState {
     this.persist();
   }
 
+  /** Duplicate a cell at idx, inserting the copy right after it */
+  duplicateCellAt(idx: number) {
+    if (idx < 0 || idx >= this.cells.length) return;
+    const cell = this.cells[idx];
+    this.cells.splice(idx + 1, 0, { id: genId(), poolKey: cell.poolKey });
+    this.persist();
+  }
+
   /** Add more empty cells at the end */
   addMoreCells(count: number) {
     this.cells.push(...makeCells(count));

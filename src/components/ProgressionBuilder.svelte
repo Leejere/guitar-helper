@@ -554,6 +554,10 @@
     progression.deleteCellAt(idx);
   }
 
+  function handleDuplicateCell(idx: number) {
+    progression.duplicateCellAt(idx);
+  }
+
   function handleAddMoreCells() {
     const cols = isMobile ? 2 : 4;
     progression.addMoreCells(cols);
@@ -825,6 +829,11 @@
                       {/if}
                     </div>
                   </div>
+                  <button
+                    class="cell-remove-btn cell-dup-btn"
+                    title="Duplicate cell"
+                    onclick={(e) => { e.stopPropagation(); handleDuplicateCell(idx); }}
+                  >⧉</button>
                   <button
                     class="cell-remove-btn"
                     title="Delete cell"
@@ -1574,6 +1583,12 @@
   .cell-remove-btn:hover {
     opacity: 1 !important;
     color: var(--error);
+  }
+  .cell-dup-btn {
+    right: 18px;
+  }
+  .cell-dup-btn:hover {
+    color: var(--accent) !important;
   }
 
   .cell-insert-btn {
