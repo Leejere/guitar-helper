@@ -38,7 +38,7 @@
       roots: [],
       keys: [],
       categories: [],
-      voicings: ['root'],
+      voicings: [],
       scale: '',
     }).slice(0, 8);
     quickDropdownOpen = quickResults.length > 0;
@@ -152,7 +152,7 @@
       roots: [],
       keys: [],
       categories: [],
-      voicings: ['root'],
+      voicings: [],
       scale: '',
     }).slice(0, 6);
     cellQuickOpen = cellQuickResults.length > 0;
