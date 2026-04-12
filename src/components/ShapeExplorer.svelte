@@ -196,14 +196,10 @@
   }
 
   function handleFretSelect(fret: number) {
-    if (selectedPosition === fret) {
-      selectedPosition = null;
-      selectedResultIdx = null;
-    } else {
-      selectedPosition = fret;
-      selectedResultIdx = null;
-      if (needsVertical && !isTablet) mobileView = 'detail';
-    }
+    if (selectedPosition === fret) return;
+    selectedPosition = fret;
+    selectedResultIdx = null;
+    if (needsVertical && !isTablet) mobileView = 'detail';
   }
 
   function selectResult(idx: number) {

@@ -845,7 +845,7 @@
                   <button
                     class="fret-selector-btn"
                     class:active={selectedFretFilter === item.positionGroup}
-                    onclick={() => { selectedFretFilter = selectedFretFilter === item.positionGroup ? null : item.positionGroup; if (!isTablet) mobileView = 'detail'; }}
+                    onclick={() => { if (selectedFretFilter !== item.positionGroup) { selectedFretFilter = item.positionGroup; if (!isTablet) mobileView = 'detail'; } }}
                   >
                     {@render mobileFretSelectorBtnContent(item)}
                   </button>
@@ -855,7 +855,7 @@
                 <button
                   class="fret-selector-btn fret-selector-all"
                   class:active={selectedFretFilter === 'all'}
-                  onclick={() => { selectedFretFilter = selectedFretFilter === 'all' ? null : 'all'; if (!isTablet) mobileView = 'detail'; }}
+                  onclick={() => { if (selectedFretFilter !== 'all') { selectedFretFilter = 'all'; if (!isTablet) mobileView = 'detail'; } }}
                 >
                   <span class="mobile-selector-text">
                     <span class="fret-selector-label">All</span>
@@ -891,7 +891,7 @@
                     <button
                       class="fret-selector-btn"
                       class:active={selectedFretFilter === item.positionGroup}
-                      onclick={() => { selectedFretFilter = selectedFretFilter === item.positionGroup ? null : item.positionGroup; }}
+                      onclick={() => { if (selectedFretFilter !== item.positionGroup) selectedFretFilter = item.positionGroup; }}
                     >
                       {@render fretSelectorBtnContent(item)}
                     </button>
@@ -901,7 +901,7 @@
                   <button
                     class="fret-selector-btn fret-selector-all"
                     class:active={selectedFretFilter === 'all'}
-                    onclick={() => { selectedFretFilter = selectedFretFilter === 'all' ? null : 'all'; }}
+                    onclick={() => { if (selectedFretFilter !== 'all') selectedFretFilter = 'all'; }}
                   >
                     <span class="fret-selector-label">All</span>
                     <span class="fret-selector-all-desc">Sorted by playability</span>

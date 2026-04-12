@@ -293,16 +293,20 @@ export function filterChords(filters: ChordFilters): ChordEntry[] {
   if (slashBass) {
     const withSlash: ChordEntry[] = [];
     for (const entry of results) {
-      // Only return the slash variant
-      withSlash.push({
-        symbol: `${entry.symbol}/${slashBass}`,
-        root: entry.root,
-        typeSuffix: entry.typeSuffix,
-        typeName: entry.typeName,
-        category: entry.category,
-        keys: entry.keys,
-        bassNote: slashBass,
-      });
+      if (entry.root === slashBass) {
+        // C/C is just C — return the original entry
+        withSlash.push(entry);
+      } else {
+        withSlash.push({
+          symbol: `${entry.symbol}/${slashBass}`,
+          root: entry.root,
+          typeSuffix: entry.typeSuffix,
+          typeName: entry.typeName,
+          category: entry.category,
+          keys: entry.keys,
+          bassNote: slashBass,
+        });
+      }
     }
 
     if (search) {
