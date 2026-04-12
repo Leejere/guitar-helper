@@ -50,13 +50,14 @@
   let filterVoicings: string[] = $state([...cfs.filterVoicings]);
   let filterScaleRoot = $state(cfs.filterScaleRoot);
   let filterScaleMode = $state(cfs.filterScaleMode);
+  let filterSlashBass = $state(cfs.filterSlashBass);
 
   let filterScale = $derived(
     filterScaleRoot && filterScaleMode ? `${filterScaleRoot} ${filterScaleMode}` : ''
   );
 
   let filteredChordList = $derived(
-    filterChords({ search: searchText, roots: filterRoots, keys: filterKeys, categories: filterCategories, voicings: filterVoicings, scale: filterScale })
+    filterChords({ search: searchText, roots: filterRoots, keys: filterKeys, categories: filterCategories, voicings: filterVoicings, scale: filterScale, slashBass: filterSlashBass })
   );
 
   let scaleDegreeGroups = $derived.by(() => {
@@ -66,7 +67,10 @@
     return groups
       .map(g => ({
         ...g,
-        chords: filteredChordList.filter(e => g.symbols.has(e.symbol)),
+        chords: filteredChordList.filter(e => {
+          const base = e.bassNote ? e.symbol.split('/')[0] : e.symbol;
+          return g.symbols.has(e.symbol) || g.symbols.has(base);
+        }),
       }))
       .filter(g => g.chords.length > 0);
   });
@@ -106,6 +110,7 @@
     cfs.filterVoicings = filterVoicings;
     cfs.filterScaleRoot = filterScaleRoot;
     cfs.filterScaleMode = filterScaleMode;
+    cfs.filterSlashBass = filterSlashBass;
     cfs.activeChordSymbol = activeChordSymbol;
     cfs.showIntervals = showIntervals;
     cfs.selectedFretFilter = selectedFretFilter;
@@ -141,7 +146,7 @@
   let quickSearchFocused = $state(false);
   let quickSearchResults = $derived(
     quickSearchText.length >= 1
-      ? filterChords({ search: quickSearchText, roots: [], keys: [], categories: [], voicings: [], scale: '' }).slice(0, 12)
+      ? filterChords({ search: quickSearchText, roots: [], keys: [], categories: [], voicings: [], scale: '', slashBass: '' }).slice(0, 12)
       : []
   );
 
@@ -483,6 +488,7 @@
     filterVoicings = [];
     filterScaleRoot = '';
     filterScaleMode = '';
+    filterSlashBass = '';
   }
 
   function clearScaleFilter() {
@@ -519,7 +525,7 @@
   }
 
   const hasAnyBrowseFilter = $derived(
-    searchText !== '' || filterRoots.length > 0 || filterKeys.length > 0 || filterCategories.length > 0 || filterVoicings.length > 0 || filterScaleRoot !== '' || filterScaleMode !== ''
+    searchText !== '' || filterRoots.length > 0 || filterKeys.length > 0 || filterCategories.length > 0 || filterVoicings.length > 0 || filterScaleRoot !== '' || filterScaleMode !== '' || filterSlashBass !== ''
   );
 
   function toggleFilter(arr: string[], value: string): string[] {
@@ -650,6 +656,24 @@
             {/if}
             {#if filterScaleRoot || filterScaleMode}
               <button class="filter-row-clear" onclick={() => { filterScaleRoot = ''; filterScaleMode = ''; }}>&times;</button>
+            {/if}
+          </div>
+        </div>
+
+        <div class="filter-divider"></div>
+
+        <div class="filter-row">
+          <label class="filter-label">Slash</label>
+          <div class="filter-options">
+            {#each FILTER_ROOTS as r}
+              <button
+                class="filter-btn"
+                class:active={filterSlashBass === r}
+                onclick={() => filterSlashBass = filterSlashBass === r ? '' : r}
+              >{displayAccidental(r)}</button>
+            {/each}
+            {#if filterSlashBass}
+              <button class="filter-row-clear" onclick={() => filterSlashBass = ''}>&times;</button>
             {/if}
           </div>
         </div>

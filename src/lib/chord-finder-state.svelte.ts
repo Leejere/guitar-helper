@@ -13,6 +13,7 @@ interface StoredState {
   filterVoicings: string[];
   filterScaleRoot: string;
   filterScaleMode: string;
+  filterSlashBass: string;
   activeChordSymbol: string;
   showIntervals: boolean;
   selectedFretFilter: string | null;
@@ -29,6 +30,7 @@ class ChordFinderState {
   filterVoicings: string[] = $state([]);
   filterScaleRoot: string = $state('');
   filterScaleMode: string = $state('');
+  filterSlashBass: string = $state('');
   activeChordSymbol: string = $state('');
   showIntervals: boolean = $state(false);
   selectedFretFilter: string | null = $state(null);
@@ -50,6 +52,7 @@ class ChordFinderState {
         filterVoicings: this.filterVoicings,
         filterScaleRoot: this.filterScaleRoot,
         filterScaleMode: this.filterScaleMode,
+        filterSlashBass: this.filterSlashBass,
         activeChordSymbol: this.activeChordSymbol,
         showIntervals: this.showIntervals,
         selectedFretFilter: this.selectedFretFilter,
@@ -73,6 +76,7 @@ class ChordFinderState {
       if (Array.isArray(data.filterVoicings)) this.filterVoicings = data.filterVoicings;
       if (typeof data.filterScaleRoot === 'string') this.filterScaleRoot = data.filterScaleRoot;
       if (typeof data.filterScaleMode === 'string') this.filterScaleMode = data.filterScaleMode;
+      if (typeof data.filterSlashBass === 'string') this.filterSlashBass = data.filterSlashBass;
       if (typeof data.activeChordSymbol === 'string') this.activeChordSymbol = data.activeChordSymbol;
       if (typeof data.showIntervals === 'boolean') this.showIntervals = data.showIntervals;
       if (data.selectedFretFilter === null || typeof data.selectedFretFilter === 'string') this.selectedFretFilter = data.selectedFretFilter;

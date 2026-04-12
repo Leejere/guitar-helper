@@ -199,6 +199,7 @@ export interface ChordFilters {
   categories: string[];  // [] = any
   voicings: string[];    // [] = any, values: 'root' | 'slash'
   scale: string;         // '' = any, or 'root mode' e.g. 'C dorian'
+  slashBass: string;     // '' = any, or a note name e.g. 'E' — generates dynamic slash chords
 }
 
 /**
@@ -239,10 +240,17 @@ function searchRelevance(entry: ChordEntry, search: string): number {
 export function filterChords(filters: ChordFilters): ChordEntry[] {
   const db = getChordDatabase();
   const search = normalizeInput(filters.search.trim()).toLowerCase();
+  const slashBass = filters.slashBass || '';
 
   const rootChromas = filters.roots.map(r => Note.chroma(r));
 
   const results = db.filter(entry => {
+    // When slashBass is active, only consider root-position chords (no inversions)
+    // When slashBass is empty, allow both root and inversions as before
+    if (slashBass) {
+      if (entry.bassNote) return false;
+    }
+
     // Text search: match against symbol (case-insensitive)
     if (search) {
       const sym = entry.symbol.toLowerCase();
@@ -264,8 +272,8 @@ export function filterChords(filters: ChordFilters): ChordEntry[] {
     if (filters.categories.length > 0 && !filters.categories.includes(entry.category)) {
       return false;
     }
-    // Voicing (root position / slash) filter (multi-select)
-    if (filters.voicings.length > 0) {
+    // Voicing (root position / slash) filter (multi-select) — skip when slashBass is active
+    if (!slashBass && filters.voicings.length > 0) {
       const isRoot = !entry.bassNote;
       const isSlash = !!entry.bassNote;
       const match = (filters.voicings.includes('root') && isRoot) || (filters.voicings.includes('slash') && isSlash);
@@ -280,6 +288,28 @@ export function filterChords(filters: ChordFilters): ChordEntry[] {
     }
     return true;
   });
+
+  // When slashBass is active, generate dynamic slash entries for each root-position result
+  if (slashBass) {
+    const withSlash: ChordEntry[] = [];
+    for (const entry of results) {
+      // Only return the slash variant
+      withSlash.push({
+        symbol: `${entry.symbol}/${slashBass}`,
+        root: entry.root,
+        typeSuffix: entry.typeSuffix,
+        typeName: entry.typeName,
+        category: entry.category,
+        keys: entry.keys,
+        bassNote: slashBass,
+      });
+    }
+
+    if (search) {
+      withSlash.sort((a, b) => searchRelevance(a, search) - searchRelevance(b, search));
+    }
+    return withSlash;
+  }
 
   // Sort by search relevance when a text query is present
   if (search) {
@@ -457,12 +487,11 @@ function computeScaleChordsByDegree(scaleKey: string): ScaleDegreeGroup[] | null
     // Build the expected chord symbol
     const chordSymbol = formatChordName(root + (suffix || 'M'));
 
-    // Find the root-position entry in db by matching root chroma + suffix
+    // Find the root-position entry in db by matching exact root name + suffix
     const degreeSymbols = new Set<string>();
     for (const entry of db) {
       if (entry.bassNote) continue;
-      const entryChroma = Note.chroma(entry.root);
-      if (entryChroma === rootChroma && entry.typeSuffix === suffix) {
+      if (entry.root === root && entry.typeSuffix === suffix) {
         degreeSymbols.add(entry.symbol);
       }
     }
