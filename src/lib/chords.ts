@@ -378,6 +378,16 @@ const _scaleChordCache = new Map<string, Set<string>>();
  * Compute the diatonic triads and 7th chords for a given scale.
  * Builds chords by stacking thirds from each scale degree.
  */
+/** Compute a pitch-class chroma string from actual note names (12-bit, position = semitone) */
+function pitchClassChroma(noteNames: string[]): string {
+  const bits = new Array(12).fill('0');
+  for (const n of noteNames) {
+    const c = Note.chroma(n);
+    if (c !== undefined) bits[c] = '1';
+  }
+  return bits.join('');
+}
+
 function computeScaleDiatonicSymbols(scaleKey: string): Set<string> | null {
   const scale = Scale.get(scaleKey);
   if (scale.empty || !scale.notes) return null;
@@ -388,39 +398,35 @@ function computeScaleDiatonicSymbols(scaleKey: string): Set<string> | null {
   const symbols = new Set<string>();
   const db = getChordDatabase();
 
-  // Build lookup: chord chroma → database symbols
-  const dbByChroma = new Map<string, string[]>();
+  // Build lookup: pitch-class chroma → database symbols
+  // (pitch-class chroma represents the actual notes, not the interval pattern)
+  const dbByPCC = new Map<string, string[]>();
   for (const entry of db) {
     if (entry.bassNote) continue; // handle slash chords separately
     const info = Chord.get(normalizeInput(entry.symbol));
-    if (info && !info.empty && info.chroma) {
-      if (!dbByChroma.has(info.chroma)) dbByChroma.set(info.chroma, []);
-      dbByChroma.get(info.chroma)!.push(entry.symbol);
+    if (info && !info.empty && info.notes && info.notes.length > 0) {
+      const pcc = pitchClassChroma(info.notes);
+      if (!dbByPCC.has(pcc)) dbByPCC.set(pcc, []);
+      dbByPCC.get(pcc)!.push(entry.symbol);
     }
   }
 
-  // Collect chromas of detected diatonic chords
-  const diatonicChromas = new Set<string>();
+  // Collect pitch-class chromas of diatonic triads and 7th chords
+  const diatonicPCCs = new Set<string>();
 
   for (let i = 0; i < n; i++) {
     // Triad: degrees i, i+2, i+4
     const triad = [notes[i], notes[(i + 2) % n], notes[(i + 4) % n]];
-    for (const d of Chord.detect(triad)) {
-      const info = Chord.get(d);
-      if (info && !info.empty && info.chroma) diatonicChromas.add(info.chroma);
-    }
+    diatonicPCCs.add(pitchClassChroma(triad));
 
     // 7th chord: degrees i, i+2, i+4, i+6
     const seventh = [notes[i], notes[(i + 2) % n], notes[(i + 4) % n], notes[(i + 6) % n]];
-    for (const d of Chord.detect(seventh)) {
-      const info = Chord.get(d);
-      if (info && !info.empty && info.chroma) diatonicChromas.add(info.chroma);
-    }
+    diatonicPCCs.add(pitchClassChroma(seventh));
   }
 
-  // Match detected chromas to database entries
-  for (const chroma of diatonicChromas) {
-    const entries = dbByChroma.get(chroma);
+  // Match pitch-class chromas to database entries
+  for (const pcc of diatonicPCCs) {
+    const entries = dbByPCC.get(pcc);
     if (entries) {
       for (const sym of entries) symbols.add(sym);
     }
@@ -471,6 +477,7 @@ export interface ScaleDegreeGroup {
   rootNote: string;
   chordSymbol: string;
   symbols: Set<string>;
+  triadSymbols: Set<string>;
 }
 
 const DEGREE_FUNCTIONS = [
@@ -509,16 +516,29 @@ function computeScaleChordsByDegree(scaleKey: string): ScaleDegreeGroup[] | null
     // Build the expected chord symbol
     const chordSymbol = formatChordName(root + (suffix || 'M'));
 
-    // Find the root-position entry in db by matching exact root name + suffix
+    // Find the root-position triad entry in db by matching exact root name + suffix
+    const triadSymbols = new Set<string>();
     const degreeSymbols = new Set<string>();
     for (const entry of db) {
       if (entry.bassNote) continue;
       if (entry.root === root && entry.typeSuffix === suffix) {
+        triadSymbols.add(entry.symbol);
         degreeSymbols.add(entry.symbol);
       }
     }
 
-    // Add slash chord inversions of matched base chords
+    // Add diatonic extensions (7ths, etc.) sharing the same root
+    const diatonicSet = getScaleDiatonicSymbols(scaleKey);
+    if (diatonicSet) {
+      for (const entry of db) {
+        if (entry.bassNote) continue;
+        if (entry.root === root && diatonicSet.has(entry.symbol)) {
+          degreeSymbols.add(entry.symbol);
+        }
+      }
+    }
+
+    // Add slash chord inversions of all matched base chords
     const baseSymbols = new Set(degreeSymbols);
     for (const entry of db) {
       if (entry.bassNote) {
@@ -542,6 +562,7 @@ function computeScaleChordsByDegree(scaleKey: string): ScaleDegreeGroup[] | null
       rootNote: root,
       chordSymbol,
       symbols: degreeSymbols,
+      triadSymbols,
     });
   }
 
@@ -553,4 +574,79 @@ export function getScaleChordsByDegree(scaleKey: string): ScaleDegreeGroup[] | n
   const result = computeScaleChordsByDegree(scaleKey);
   if (result) _scaleDegreeCache.set(scaleKey, result);
   return result;
+}
+
+// ---- Related chords ----
+
+export interface RelatedChord {
+  symbol: string;
+  relation: string; // e.g. "7th", "minor", "sus4"
+}
+
+/**
+ * Chord relation rules ordered by musical relevance.
+ * Each rule: [targetSuffix, relationLabel, sourceSuffixes]
+ * A relation is shown when the current chord's suffix is in sourceSuffixes
+ * and a chord with root+targetSuffix exists in the database.
+ */
+const CHORD_RELATIONS: [string, string, Set<string>][] = [
+  // Quality changes (from the chord's own quality)
+  ['m',       'Minor',      new Set(['', 'maj7', '7', '6', 'sus2', 'sus4', 'dim', 'aug', '5'])],
+  ['',        'Major',      new Set(['m', 'm7', 'm6', 'dim', 'aug', 'sus2', 'sus4', 'm7b5', '5'])],
+  // Seventh extensions
+  ['7',       '7th',        new Set(['', '6', 'sus4', '5'])],
+  ['maj7',    'maj7',       new Set(['', '6'])],
+  ['m7',      'm7',         new Set(['m', 'm6'])],
+  // Suspended
+  ['sus4',    'sus4',       new Set(['', 'm', '7', 'maj7'])],
+  ['sus2',    'sus2',       new Set(['', 'm', '7', 'maj7'])],
+  // Add chords
+  ['add9',    'add9',       new Set(['', 'maj7', '7'])],
+  ['madd9',   'add9',       new Set(['m', 'm7'])],
+  // Extended
+  ['9',       '9th',        new Set(['7'])],
+  ['m9',      'm9',         new Set(['m7'])],
+  ['maj9',    'maj9',       new Set(['maj7'])],
+  // Diminished / augmented
+  ['dim',     'dim',        new Set(['m', 'm7b5'])],
+  ['aug',     'aug',        new Set(['', 'maj7', '7'])],
+  ['dim7',    'dim7',       new Set(['dim', 'm7b5'])],
+  ['m7b5',    'm7♭5',      new Set(['dim', 'm'])],
+  // Sixth
+  ['6',       '6th',        new Set(['', 'maj7'])],
+  ['m6',      'm6',         new Set(['m', 'm7'])],
+  // Power chord
+  ['5',       '5',          new Set(['', 'm'])],
+  // 7sus4
+  ['7sus4',   '7sus4',      new Set(['sus4', '7'])],
+];
+
+export function getRelatedChords(chordSymbol: string): RelatedChord[] {
+  const db = getChordDatabase();
+  const entry = db.find(e => e.symbol === chordSymbol && !e.bassNote);
+  if (!entry) return [];
+
+  const root = entry.root;
+  const currentSuffix = entry.typeSuffix;
+
+  // Build set of existing non-slash symbols for this root
+  const existingSymbols = new Set<string>();
+  for (const e of db) {
+    if (!e.bassNote && e.root === root) existingSymbols.add(e.symbol);
+  }
+
+  const results: RelatedChord[] = [];
+  const seen = new Set<string>();
+
+  for (const [targetSuffix, label, sources] of CHORD_RELATIONS) {
+    if (targetSuffix === currentSuffix) continue; // skip self
+    if (!sources.has(currentSuffix)) continue; // not applicable from current quality
+    const targetSymbol = formatChordName(root + (targetSuffix || 'M'));
+    if (!existingSymbols.has(targetSymbol)) continue;
+    if (seen.has(targetSymbol)) continue;
+    seen.add(targetSymbol);
+    results.push({ symbol: targetSymbol, relation: label });
+  }
+
+  return results;
 }

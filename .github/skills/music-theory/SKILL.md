@@ -41,7 +41,20 @@ Categorization via regex-based suffix matching with precedence chain.
 
 **9 modes**: ionian, dorian, phrygian, lydian, mixolydian, aeolian, locrian, harmonic minor, melodic minor
 
-`computeScaleDiatonicSymbols()`: For each scale degree, stacks thirds to build triads and 7ths, maps detected chromas to database entries. Slash chords included if parent is diatonic AND bass note is in scale.
+`computeScaleDiatonicSymbols()`: For each scale degree, stacks thirds to build triads (3 notes) and 7ths (4 notes), computes a **pitch-class chroma** (12-bit string where each bit = a semitone present), and matches against database entries by their pitch-class chromas. This correctly identifies only chords whose actual notes match diatonic note sets. Slash chords included if parent is diatonic AND bass note is in scale.
+
+**Critical:** Uses `pitchClassChroma()` (actual note pitch classes), NOT `Chord.get().chroma` (interval structure). Tonal's `.chroma` is type-based — all major triads share the same chroma regardless of root. Pitch-class chroma is root-specific.
+
+### Scale Degree Grouping
+
+`getScaleChordsByDegree()` returns `ScaleDegreeGroup[]` — one per scale degree with:
+- `triadSymbols: Set<string>` — the degree's triad (matched by root + suffix)
+- `symbols: Set<string>` — triad + diatonic extensions (7ths, 6ths) sharing the same root
+- `romanLabel` — e.g. "I", "ii", "iii°", "IV+"
+
+Extensions are found by intersecting `getScaleDiatonicSymbols()` with `entry.root === degreeRoot`. E.g., C Ionian degree I: C (triad), Cmaj7, C6 (extensions).
+
+In the UI (`scaleDegreeGroups` derived in ChordFinder), chords are sorted: triads first, extensions second — using `triadSymbols` membership.
 
 ## Voicing Generation — [src/lib/voicings.ts](src/lib/voicings.ts)
 
@@ -89,6 +102,23 @@ Standard guitar voicing rules allow omitting certain notes:
 `getShapeVoicingsAtPosition()`: Generates one voicing per variant at a given barre position.
 
 Full CAGED details: [caged-shapes.md](./references/caged-shapes.md)
+
+## Related Chords — `getRelatedChords()`
+
+Returns `RelatedChord[]` (symbol + relation label) for a given chord, based on the `CHORD_RELATIONS` rule table. Each rule maps a target suffix to the source suffixes it's reachable from.
+
+**Relation categories (in priority order):**
+1. **Quality changes**: Major ↔ Minor (e.g., C → Cm)
+2. **Seventh extensions**: 7th, maj7, m7 (e.g., C → C7, Cm → Cm7)
+3. **Suspended**: sus4, sus2 (e.g., C → Csus4)
+4. **Add chords**: add9, madd9 (e.g., C → Cadd9)
+5. **Extended**: 9th, m9, maj9 (e.g., C7 → C9)
+6. **Diminished/Augmented**: dim, aug, dim7, m7♭5
+7. **Sixth**: 6th, m6
+8. **Power**: 5 (e.g., C → C5)
+9. **7sus4**: from sus4 or 7
+
+Only chords that exist in the database are returned. The first 4 are shown inline as chips; overflow goes to a "..." dropdown. Used in ChordFinder's voicing phase.
 
 ## Music Utilities — [src/lib/music.ts](src/lib/music.ts)
 

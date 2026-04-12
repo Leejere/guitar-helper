@@ -14,6 +14,7 @@ interface StoredState {
   filterSlashBass: string;
   activeChordSymbol: string;
   showIntervals: boolean;
+  includeExtensions: boolean;
   selectedFretFilter: string | null;
   selectedIdx: number | null;
 }
@@ -29,6 +30,7 @@ class ChordFinderState {
   filterSlashBass: string = $state('');
   activeChordSymbol: string = $state('');
   showIntervals: boolean = $state(false);
+  includeExtensions: boolean = $state(false);
   selectedFretFilter: string | null = $state(null);
   selectedIdx: number | null = $state(null);
 
@@ -49,6 +51,7 @@ class ChordFinderState {
         filterSlashBass: this.filterSlashBass,
         activeChordSymbol: this.activeChordSymbol,
         showIntervals: this.showIntervals,
+        includeExtensions: this.includeExtensions,
         selectedFretFilter: this.selectedFretFilter,
         selectedIdx: this.selectedIdx,
       };
@@ -71,6 +74,7 @@ class ChordFinderState {
       if (typeof data.filterSlashBass === 'string') this.filterSlashBass = data.filterSlashBass;
       if (typeof data.activeChordSymbol === 'string') this.activeChordSymbol = data.activeChordSymbol;
       if (typeof data.showIntervals === 'boolean') this.showIntervals = data.showIntervals;
+      if (typeof (data as any).includeExtensions === 'boolean') this.includeExtensions = (data as any).includeExtensions;
       if (data.selectedFretFilter === null || typeof data.selectedFretFilter === 'string') this.selectedFretFilter = data.selectedFretFilter;
       if (data.selectedIdx === null || typeof data.selectedIdx === 'number') this.selectedIdx = data.selectedIdx;
     } catch {}

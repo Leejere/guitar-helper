@@ -2,7 +2,7 @@
   import { getChord, displayAccidental, normalizeInput, getIntervalLabel, fretsToVoicing } from '../lib/music';
   import { findVoicings, voicingToString, classifyCAGED, type Voicing, type CAGEDShape } from '../lib/voicings';
   import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
-  import { filterChords, getChordDatabase, ALL_CATEGORIES, FILTER_ROOTS, SCALE_MODES, getScaleChordsByDegree, type ChordEntry, type ScaleDegreeGroup } from '../lib/chords';
+  import { filterChords, getChordDatabase, ALL_CATEGORIES, FILTER_ROOTS, SCALE_MODES, getScaleChordsByDegree, getRelatedChords, type ChordEntry, type ScaleDegreeGroup } from '../lib/chords';
   import { Note, Interval } from 'tonal';
   import { untrack, tick } from 'svelte';
   import Fretboard from './Fretboard.svelte';
@@ -63,13 +63,27 @@
     if (!filterScale) return [];
     const groups = getScaleChordsByDegree(filterScale);
     if (!groups) return [];
+    const ext = includeExtensions;
     return groups
       .map(g => ({
         ...g,
-        chords: filteredChordList.filter(e => {
-          const base = e.bassNote ? e.symbol.split('/')[0] : e.symbol;
-          return g.symbols.has(e.symbol) || g.symbols.has(base);
-        }),
+        chords: filteredChordList
+          .filter(e => {
+            const base = e.bassNote ? e.symbol.split('/')[0] : e.symbol;
+            if (!g.symbols.has(e.symbol) && !g.symbols.has(base)) return false;
+            // When extensions are off, only show triads
+            if (!ext && !g.triadSymbols.has(base) && !g.triadSymbols.has(e.symbol)) return false;
+            return true;
+          })
+          .sort((a, b) => {
+            const aBase = a.bassNote ? a.symbol.split('/')[0] : a.symbol;
+            const bBase = b.bassNote ? b.symbol.split('/')[0] : b.symbol;
+            const aTriad = g.triadSymbols.has(aBase);
+            const bTriad = g.triadSymbols.has(bBase);
+            if (aTriad && !bTriad) return -1;
+            if (!aTriad && bTriad) return 1;
+            return 0;
+          }),
       }))
       .filter(g => g.chords.length > 0);
   });
@@ -99,6 +113,9 @@
   // Intervals toggle
   let showIntervals = $state(cfs.showIntervals);
 
+  // Extensions toggle for scale filter
+  let includeExtensions = $state(cfs.includeExtensions);
+
   // Auto-persist browse/voicing state
   $effect(() => {
     cfs.selectedTuning = selectedTuning;
@@ -111,6 +128,7 @@
     cfs.filterSlashBass = filterSlashBass;
     cfs.activeChordSymbol = activeChordSymbol;
     cfs.showIntervals = showIntervals;
+    cfs.includeExtensions = includeExtensions;
     cfs.selectedFretFilter = selectedFretFilter;
     cfs.selectedIdx = selectedIdx;
     cfs.persist();
@@ -340,6 +358,13 @@
     return getChordDatabase().find(e => e.symbol === activeChordSymbol) ?? null;
   });
 
+  // Related chords for the active chord
+  const RELATED_INLINE_MAX = 4;
+  let relatedChords = $derived(activeChordSymbol ? getRelatedChords(activeChordSymbol) : []);
+  let relatedInline = $derived(relatedChords.slice(0, RELATED_INLINE_MAX));
+  let relatedOverflow = $derived(relatedChords.slice(RELATED_INLINE_MAX));
+  let relatedMoreOpen = $state(false);
+
   // --- Actions ---
 
   function handleTuningChange(e: Event) {
@@ -352,6 +377,7 @@
   }
 
   function selectChord(symbol: string) {
+    relatedMoreOpen = false;
     activeChordSymbol = symbol;
     // Look up the entry to get bassNote if it's a slash chord
     const entry = filteredChordList.find(e => e.symbol === symbol);
@@ -669,6 +695,16 @@
                 >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
               {/each}
             </div>
+            {#if filterScale}
+              <div class="filter-options-sub">
+                <label class="extensions-toggle">
+                  <span class="toggle-label">Include extensions</span>
+                  <span class="toggle-switch" class:on={includeExtensions} onclick={() => includeExtensions = !includeExtensions} role="switch" aria-checked={includeExtensions} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); includeExtensions = !includeExtensions; } }}>
+                    <span class="toggle-knob"></span>
+                  </span>
+                </label>
+              </div>
+            {/if}
           </div>
         </div>
 
@@ -802,6 +838,41 @@
             </span>
           </label>
         </div>
+
+        {#if relatedChords.length > 0}
+          <div class="related-chords-bar">
+            <span class="related-label">Related:</span>
+            {#each relatedInline as rc}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <span class="related-chip" onclick={() => selectChord(rc.symbol)}>
+                <span class="related-chip-name">{displayAccidental(rc.symbol)}</span>
+                <span class="related-chip-relation">{rc.relation}</span>
+              </span>
+            {/each}
+            {#if relatedOverflow.length > 0}
+              <span class="related-more-wrapper">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <span class="related-chip related-more-btn" onclick={() => relatedMoreOpen = !relatedMoreOpen}>
+                  &hellip;
+                </span>
+                {#if relatedMoreOpen}
+                  <div class="related-more-dropdown">
+                    {#each relatedOverflow as rc}
+                      <!-- svelte-ignore a11y_click_events_have_key_events -->
+                      <!-- svelte-ignore a11y_no_static_element_interactions -->
+                      <div class="related-more-item" onclick={() => { relatedMoreOpen = false; selectChord(rc.symbol); }}>
+                        <span class="related-chip-name">{displayAccidental(rc.symbol)}</span>
+                        <span class="related-chip-relation">{rc.relation}</span>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </span>
+            {/if}
+          </div>
+        {/if}
       {/if}
 
       <div class="voicings-scroll-area" class:tablet={isTablet}>
@@ -2099,6 +2170,97 @@
   }
 
   .mobile-back-btn:hover {
+    background: var(--bg-secondary);
+  }
+
+  /* Extensions toggle in scale filter */
+  .extensions-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* Related chords bar */
+  .related-chords-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    flex-wrap: wrap;
+  }
+
+  .related-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .related-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .related-chip:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent);
+  }
+
+  .related-chip-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .related-chip-relation {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .related-more-wrapper {
+    position: relative;
+  }
+
+  .related-more-btn {
+    padding: 3px 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .related-more-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 0;
+    z-index: 20;
+    min-width: 140px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .related-more-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .related-more-item:hover {
     background: var(--bg-secondary);
   }
 </style>
