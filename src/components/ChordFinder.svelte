@@ -2,7 +2,7 @@
   import { getChord, displayAccidental, normalizeInput, getIntervalLabel } from '../lib/music';
   import { findVoicings, voicingToString, type Voicing, type CAGEDShape } from '../lib/voicings';
   import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
-  import { filterChords, getChordDatabase, ALL_CATEGORIES, getAllKeys, FILTER_ROOTS, SCALE_MODES, getScaleChordsByDegree, type ChordEntry, type ScaleDegreeGroup } from '../lib/chords';
+  import { filterChords, getChordDatabase, ALL_CATEGORIES, FILTER_ROOTS, SCALE_MODES, getScaleChordsByDegree, type ChordEntry, type ScaleDegreeGroup } from '../lib/chords';
   import { Note, Interval } from 'tonal';
   import { untrack } from 'svelte';
   import Fretboard from './Fretboard.svelte';
@@ -45,9 +45,7 @@
   // --- Browse phase state ---
   let searchText = $state(cfs.searchText);
   let filterRoots: string[] = $state([...cfs.filterRoots]);
-  let filterKeys: string[] = $state([...cfs.filterKeys]);
   let filterCategories: string[] = $state([...cfs.filterCategories]);
-  let filterVoicings: string[] = $state([...cfs.filterVoicings]);
   let filterScaleRoot = $state(cfs.filterScaleRoot);
   let filterScaleMode = $state(cfs.filterScaleMode);
   let filterSlashBass = $state(cfs.filterSlashBass);
@@ -57,7 +55,7 @@
   );
 
   let filteredChordList = $derived(
-    filterChords({ search: searchText, roots: filterRoots, keys: filterKeys, categories: filterCategories, voicings: filterVoicings, scale: filterScale, slashBass: filterSlashBass })
+    filterChords({ search: searchText, roots: filterRoots, categories: filterCategories, scale: filterScale, slashBass: filterSlashBass })
   );
 
   let scaleDegreeGroups = $derived.by(() => {
@@ -75,7 +73,7 @@
       .filter(g => g.chords.length > 0);
   });
 
-  const allKeys = getAllKeys();
+
 
   // --- Voicings phase state ---
   let activeChordSymbol = $state(cfs.activeChordSymbol);
@@ -105,9 +103,7 @@
     cfs.phase = phase;
     cfs.searchText = searchText;
     cfs.filterRoots = filterRoots;
-    cfs.filterKeys = filterKeys;
     cfs.filterCategories = filterCategories;
-    cfs.filterVoicings = filterVoicings;
     cfs.filterScaleRoot = filterScaleRoot;
     cfs.filterScaleMode = filterScaleMode;
     cfs.filterSlashBass = filterSlashBass;
@@ -146,7 +142,7 @@
   let quickSearchFocused = $state(false);
   let quickSearchResults = $derived(
     quickSearchText.length >= 1
-      ? filterChords({ search: quickSearchText, roots: [], keys: [], categories: [], voicings: [], scale: '', slashBass: '' }).slice(0, 12)
+      ? filterChords({ search: quickSearchText, roots: [], categories: [], scale: '', slashBass: '' }).slice(0, 12)
       : []
   );
 
@@ -483,9 +479,7 @@
   function clearBrowseFilters() {
     searchText = '';
     filterRoots = [];
-    filterKeys = [];
     filterCategories = [];
-    filterVoicings = [];
     filterScaleRoot = '';
     filterScaleMode = '';
     filterSlashBass = '';
@@ -499,9 +493,7 @@
   function clearNonScaleFilters() {
     searchText = '';
     filterRoots = [];
-    filterKeys = [];
     filterCategories = [];
-    filterVoicings = [];
   }
 
   function handleScaleRootClick(r: string) {
@@ -525,18 +517,14 @@
   }
 
   const hasAnyBrowseFilter = $derived(
-    searchText !== '' || filterRoots.length > 0 || filterKeys.length > 0 || filterCategories.length > 0 || filterVoicings.length > 0 || filterScaleRoot !== '' || filterScaleMode !== '' || filterSlashBass !== ''
+    searchText !== '' || filterRoots.length > 0 || filterCategories.length > 0 || filterScaleRoot !== '' || filterScaleMode !== '' || filterSlashBass !== ''
   );
 
   function toggleFilter(arr: string[], value: string): string[] {
     return arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
   }
 
-  function keyDisplayLabel(k: string): string {
-    // "C" → "C major", "Cm" → "C minor"
-    if (k.endsWith('m')) return displayAccidental(k.slice(0, -1)) + ' minor';
-    return displayAccidental(k) + ' major';
-  }
+
 </script>
 
 <div class="page-root">
@@ -588,41 +576,6 @@
             {/each}
             {#if filterCategories.length > 0}
               <button class="filter-row-clear" onclick={() => filterCategories = []}>&times;</button>
-            {/if}
-          </div>
-        </div>
-
-        <div class="filter-row">
-          <label class="filter-label">Key</label>
-          <div class="filter-options">
-            {#each allKeys as k}
-              <button
-                class="filter-btn"
-                class:active={filterKeys.includes(k)}
-                onclick={() => { handleNonScaleFilterAction(); filterKeys = toggleFilter(filterKeys, k); }}
-              >{keyDisplayLabel(k)}</button>
-            {/each}
-            {#if filterKeys.length > 0}
-              <button class="filter-row-clear" onclick={() => filterKeys = []}>&times;</button>
-            {/if}
-          </div>
-        </div>
-
-        <div class="filter-row">
-          <label class="filter-label">Position</label>
-          <div class="filter-options">
-            <button
-              class="filter-btn"
-              class:active={filterVoicings.includes('root')}
-              onclick={() => { handleNonScaleFilterAction(); filterVoicings = toggleFilter(filterVoicings, 'root'); }}
-            >Root position</button>
-            <button
-              class="filter-btn"
-              class:active={filterVoicings.includes('slash')}
-              onclick={() => { handleNonScaleFilterAction(); filterVoicings = toggleFilter(filterVoicings, 'slash'); }}
-            >Slash chords</button>
-            {#if filterVoicings.length > 0}
-              <button class="filter-row-clear" onclick={() => filterVoicings = []}>&times;</button>
             {/if}
           </div>
         </div>

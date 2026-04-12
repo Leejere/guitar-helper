@@ -195,9 +195,7 @@ export const ALL_CATEGORIES: ChordCategory[] = [
 export interface ChordFilters {
   search: string;
   roots: string[];       // [] = any
-  keys: string[];        // [] = any
   categories: string[];  // [] = any
-  voicings: string[];    // [] = any, values: 'root' | 'slash'
   scale: string;         // '' = any, or 'root mode' e.g. 'C dorian'
   slashBass: string;     // '' = any, or a note name e.g. 'E' — generates dynamic slash chords
 }
@@ -262,22 +260,9 @@ export function filterChords(filters: ChordFilters): ChordEntry[] {
     if (rootChromas.length > 0 && !rootChromas.includes(Note.chroma(entry.root))) {
       return false;
     }
-    // Key filter (multi-select)
-    if (filters.keys.length > 0) {
-      if (!entry.keys.some(k => filters.keys.includes(k))) {
-        return false;
-      }
-    }
     // Category filter (multi-select)
     if (filters.categories.length > 0 && !filters.categories.includes(entry.category)) {
       return false;
-    }
-    // Voicing (root position / slash) filter (multi-select) — skip when slashBass is active
-    if (!slashBass && filters.voicings.length > 0) {
-      const isRoot = !entry.bassNote;
-      const isSlash = !!entry.bassNote;
-      const match = (filters.voicings.includes('root') && isRoot) || (filters.voicings.includes('slash') && isSlash);
-      if (!match) return false;
     }
     // Scale/mode filter
     if (filters.scale) {
@@ -364,15 +349,7 @@ export function filterChords(filters: ChordFilters): ChordEntry[] {
   return results;
 }
 
-/** Build list of keys for filter dropdown: C, Cm, C#, C#m, ... */
-export function getAllKeys(): string[] {
-  const keys: string[] = [];
-  for (const root of ['C', 'C#', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']) {
-    keys.push(root);
-    keys.push(root + 'm');
-  }
-  return keys;
-}
+
 
 export const FILTER_ROOTS = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
 

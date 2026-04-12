@@ -8,9 +8,7 @@ interface StoredState {
   phase: 'browse' | 'voicings';
   searchText: string;
   filterRoots: string[];
-  filterKeys: string[];
   filterCategories: string[];
-  filterVoicings: string[];
   filterScaleRoot: string;
   filterScaleMode: string;
   filterSlashBass: string;
@@ -25,9 +23,7 @@ class ChordFinderState {
   phase: 'browse' | 'voicings' = $state('browse');
   searchText: string = $state('');
   filterRoots: string[] = $state([]);
-  filterKeys: string[] = $state([]);
   filterCategories: string[] = $state([]);
-  filterVoicings: string[] = $state([]);
   filterScaleRoot: string = $state('');
   filterScaleMode: string = $state('');
   filterSlashBass: string = $state('');
@@ -47,9 +43,7 @@ class ChordFinderState {
         phase: this.phase,
         searchText: this.searchText,
         filterRoots: this.filterRoots,
-        filterKeys: this.filterKeys,
         filterCategories: this.filterCategories,
-        filterVoicings: this.filterVoicings,
         filterScaleRoot: this.filterScaleRoot,
         filterScaleMode: this.filterScaleMode,
         filterSlashBass: this.filterSlashBass,
@@ -71,9 +65,7 @@ class ChordFinderState {
       if (data.phase === 'browse' || data.phase === 'voicings') this.phase = data.phase;
       if (typeof data.searchText === 'string') this.searchText = data.searchText;
       if (Array.isArray(data.filterRoots)) this.filterRoots = data.filterRoots;
-      if (Array.isArray(data.filterKeys)) this.filterKeys = data.filterKeys;
       if (Array.isArray(data.filterCategories)) this.filterCategories = data.filterCategories;
-      if (Array.isArray(data.filterVoicings)) this.filterVoicings = data.filterVoicings;
       if (typeof data.filterScaleRoot === 'string') this.filterScaleRoot = data.filterScaleRoot;
       if (typeof data.filterScaleMode === 'string') this.filterScaleMode = data.filterScaleMode;
       if (typeof data.filterSlashBass === 'string') this.filterSlashBass = data.filterSlashBass;

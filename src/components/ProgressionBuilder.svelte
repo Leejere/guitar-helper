@@ -55,9 +55,7 @@
     const entries = filterChords({
       search: value,
       roots: [],
-      keys: [],
       categories: [],
-      voicings: [],
       scale: '',
       slashBass: '',
     }).slice(0, 8);
@@ -252,9 +250,7 @@
     const entries = filterChords({
       search: value,
       roots: [],
-      keys: [],
       categories: [],
-      voicings: [],
       scale: '',
       slashBass: '',
     }).slice(0, 6);

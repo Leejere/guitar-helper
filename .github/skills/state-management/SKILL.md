@@ -94,7 +94,7 @@ Key methods: `pushFromPool`, `pushToCell`, `returnFromProgression`, `swapCells`,
 ### Chord Finder — [src/lib/chord-finder-state.svelte.ts](src/lib/chord-finder-state.svelte.ts)
 Storage key: `guitar-app-chord-finder`
 
-Fields: `selectedTuning`, `phase`, `searchText`, `filterRoots`, `filterKeys`, `filterCategories`, `filterVoicings`, `filterScaleRoot`, `filterScaleMode`, `activeChordSymbol`, `showIntervals`, `selectedIdx`
+Fields: `selectedTuning`, `phase`, `searchText`, `filterRoots`, `filterCategories`, `filterScaleRoot`, `filterScaleMode`, `filterSlashBass`, `activeChordSymbol`, `showIntervals`, `selectedIdx`
 
 ### Identifier — [src/lib/identifier-state.svelte.ts](src/lib/identifier-state.svelte.ts)
 Storage key: `guitar-app-identifier`
