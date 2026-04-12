@@ -6,9 +6,10 @@ Deep dive into drag-and-drop in [ProgressionBuilder.svelte](../../src/components
 
 ```typescript
 let dragSource = $state<{
-  type: 'pool' | 'progression'
+  type: 'pool' | 'progression' | 'selection'
   key?: string       // poolEntry.key (pool drag) or cell.poolKey (cell drag)
   idx?: number       // cell index (progression drag only)
+  indices?: number[] // selected cell indices (selection drag only)
 } | null>(null)
 
 let dragOverIdx = $state<number | null>(null)          // cell being hovered
@@ -81,7 +82,8 @@ Since drag is disabled on mobile, click-to-move provides the same functionality:
 Toggle via `selectMode` button. When active:
 - `touch-action: none` on cells (prevents scroll during sweep)
 - Click toggles cell in `selectedCells` Set
-- Drag disabled
+- Drag enabled ONLY for contiguous multi-selections (cells become draggable when selected and contiguous)
+- Sweep disabled on already-selected cells in a contiguous multi-selection (drag takes priority)
 
 ### Sweep Selection
 
@@ -107,5 +109,18 @@ The `sweepStartIdx` fix ensures the first cell is selected when the user starts 
 |-----------|-----------|--------|
 | Delete selected | Any selection | `progression.deleteSelection(indices)` — removes cells, shifts left |
 | Duplicate selected | Selection is contiguous | `progression.duplicateSelection(indices)` — copies before first index |
+| Drag-to-move selected | Selection is contiguous | `progression.relocateSelection(indices, targetIdx)` — splice out cells and insert as block at target |
 
 **Contiguity check**: `selectionContiguous` derived — sorted indices form an unbroken range.
+
+### Multi-Cell Drag-to-Move
+
+When a contiguous multi-selection exists (≥2 cells), selected cells become draggable:
+
+1. `draggable` condition: `selectMode && isSelected && selectionContiguous && selectedCells.size > 1`
+2. `handleCellDragStart` creates `dragSource = { type: 'selection', indices: [...selectedCells] }`
+3. `startSweep` skips if cell is part of a draggable selection (prevents sweep from interfering with drag)
+4. Drop on cell: `progression.relocateSelection(indices, dropIdx)` — moves the block
+5. Drop on insert gutter: same, with no-op check if inserting within the selection range
+6. After drop, `selectedCells` is updated to track the new positions of the moved cells
+7. Non-contiguous selections cannot be dragged (only click-based batch operations)

@@ -190,6 +190,28 @@ export class ProgressionState {
     this.persist();
   }
 
+  /** Relocate selected cells as a contiguous block to a new position. Returns new start index. */
+  relocateSelection(indices: number[], targetIdx: number): number {
+    if (indices.length === 0) return targetIdx;
+    const sorted = [...indices].sort((a, b) => a - b);
+    // Extract cells in order
+    const extracted = sorted.map(i => this.cells[i]);
+    // Remove from array (descending to preserve indices)
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      this.cells.splice(sorted[i], 1);
+    }
+    // Adjust target: count how many removed cells were before targetIdx
+    let adjusted = targetIdx;
+    for (const i of sorted) {
+      if (i < targetIdx) adjusted--;
+    }
+    adjusted = Math.max(0, Math.min(adjusted, this.cells.length));
+    // Insert block
+    this.cells.splice(adjusted, 0, ...extracted);
+    this.persist();
+    return adjusted;
+  }
+
   /** Check if a pool key is already in the progression */
   hasPoolKey(poolKey: string): boolean {
     return this.cells.some(c => c.poolKey === poolKey);

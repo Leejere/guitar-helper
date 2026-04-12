@@ -479,7 +479,7 @@
   let moveFromIdx: number | null = $state(null);
 
   // Drag state
-  let dragSource: { type: 'pool' | 'progression'; key?: string; idx?: number } | null = $state(null);
+  let dragSource: { type: 'pool' | 'progression' | 'selection'; key?: string; idx?: number; indices?: number[] } | null = $state(null);
   let dragOverIdx: number | null = $state(null);
   let dragOverInsertIdx: number | null = $state(null);
   let dragOverZone: 'pool' | 'progression' | null = $state(null);
@@ -528,6 +528,8 @@
 
   function startSweep(idx: number) {
     if (!selectMode) return;
+    // Don't start sweep on a selected cell when drag is possible (contiguous multi-selection)
+    if (selectedCells.has(idx) && selectionContiguous && selectedCells.size > 1) return;
     sweeping = true;
     swept = false;
     sweepStartIdx = idx;
@@ -628,6 +630,13 @@
 
   // Drag handlers for progression cells
   function handleCellDragStart(e: DragEvent, idx: number) {
+    // Multi-cell drag: contiguous selection
+    if (selectMode && selectedCells.has(idx) && selectionContiguous && selectedCells.size > 1) {
+      dragSource = { type: 'selection', indices: [...selectedCells] };
+      e.dataTransfer!.effectAllowed = 'move';
+      e.dataTransfer!.setData('text/plain', 'selection');
+      return;
+    }
     const cell = progression.cells[idx];
     if (!cell.poolKey) { e.preventDefault(); return; }
     dragSource = { type: 'progression', idx, key: cell.poolKey };
@@ -646,7 +655,16 @@
     e.preventDefault();
     if (!dragSource) return;
 
-    if (dragSource.type === 'pool' && dragSource.key) {
+    if (dragSource.type === 'selection' && dragSource.indices) {
+      // Multi-cell drop
+      if (!dragSource.indices.includes(idx)) {
+        const newStart = progression.relocateSelection(dragSource.indices, idx);
+        // Update selection to follow moved cells
+        const next = new Set<number>();
+        for (let i = 0; i < dragSource.indices.length; i++) next.add(newStart + i);
+        selectedCells = next;
+      }
+    } else if (dragSource.type === 'pool' && dragSource.key) {
       // Pool → Progression cell
       if (progression.cells[idx].poolKey === null) {
         progression.pushToCell(dragSource.key, idx);
@@ -684,7 +702,18 @@
     e.stopPropagation();
     if (!dragSource) return;
 
-    if (dragSource.type === 'progression' && dragSource.idx !== undefined) {
+    if (dragSource.type === 'selection' && dragSource.indices) {
+      // Multi-cell insert: check if inserting within the selection (no-op)
+      const sorted = [...dragSource.indices].sort((a, b) => a - b);
+      const min = sorted[0];
+      const max = sorted[sorted.length - 1];
+      if (insertIdx < min || insertIdx > max + 1) {
+        const newStart = progression.relocateSelection(dragSource.indices, insertIdx);
+        const next = new Set<number>();
+        for (let i = 0; i < dragSource.indices.length; i++) next.add(newStart + i);
+        selectedCells = next;
+      }
+    } else if (dragSource.type === 'progression' && dragSource.idx !== undefined) {
       const fromIdx = dragSource.idx;
       // Don't insert at the same position or the one right after (no-op)
       if (fromIdx !== insertIdx && fromIdx + 1 !== insertIdx) {
@@ -1012,7 +1041,7 @@
                 class:selected={isSelected}
                 class:drag-over={isDragOver}
                 class:select-mode={selectMode}
-                draggable={!isMobile && !!entry && !selectMode}
+                draggable={!isMobile && ((!!entry && !selectMode) || (selectMode && isSelected && selectionContiguous && selectedCells.size > 1))}
                 ondragstart={(e) => handleCellDragStart(e, idx)}
                 ondragover={(e) => handleCellDragOver(e, idx)}
                 ondrop={(e) => handleCellDrop(e, idx)}
