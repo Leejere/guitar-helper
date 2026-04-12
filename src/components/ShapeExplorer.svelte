@@ -707,8 +707,10 @@
   .voicing-action-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 2px;
     padding: 3px 8px;
+    min-width: 105px;
     border: 1.5px solid var(--border);
     border-radius: 4px;
     background: var(--bg-card);

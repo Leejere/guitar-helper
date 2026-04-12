@@ -158,3 +158,4 @@ Fretboard and chord diagrams use CSS variables directly in SVG attributes:
 3. **html2canvas compatibility**: For elements captured by html2canvas (PDF export), use **inline styles** set via JS — html2canvas doesn't reliably read scoped Svelte CSS
 4. **Border-radius**: 6px for controls, 8px for cards
 5. **Font-weight**: 600 for buttons/headings, 400 for body text
+6. **Fixed-width toggle buttons**: Any button whose label changes between states (e.g., "+ Add to pool" / "− Delete from pool") must have `min-width` set to accommodate the longest label, plus `justify-content: center`. This prevents layout shift when the text toggles. Example: `.voicing-action-btn { min-width: 105px; justify-content: center; }`
