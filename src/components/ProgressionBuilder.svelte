@@ -1140,6 +1140,17 @@
               >+</button>
             </div>
           {/each}
+
+          <!-- Add-one-cell button after the last cell -->
+          <div class="grid-cell-wrapper">
+            <button
+              class="grid-cell add-cell-btn"
+              title="Add one cell"
+              onclick={() => progression.insertCellAt(progression.cells.length)}
+            >
+              <span class="add-cell-plus">+</span>
+            </button>
+          </div>
         </div>
 
         <button class="btn btn-secondary add-more-btn" onclick={handleAddMoreCells}>
@@ -1212,7 +1223,7 @@
     border-radius: 6px;
     background: var(--bg);
     color: var(--text);
-    font-size: 14px;
+    font-size: 16px;
     outline: none;
     box-sizing: border-box;
   }
@@ -1221,7 +1232,6 @@
   }
   .quick-search-pool .quick-search-input {
     padding: 6px 10px;
-    font-size: 13px;
   }
   .quick-dropdown {
     position: absolute;
@@ -1606,7 +1616,8 @@
   .progression-grid.exporting .cell-remove-btn,
   .progression-grid.exporting .cell-insert-btn,
   .progression-grid.exporting .cell-action-btn,
-  .progression-grid.exporting .cell-empty {
+  .progression-grid.exporting .cell-empty,
+  .progression-grid.exporting .add-cell-btn {
     display: none !important;
   }
 
@@ -1731,12 +1742,12 @@
   }
   .cell-quick-input {
     width: 100%;
-    padding: 4px 8px;
+    padding: 3px 6px;
     border: 1px solid var(--border);
     border-radius: 4px;
     background: var(--bg);
     color: var(--text);
-    font-size: 12px;
+    font-size: 16px;
     outline: none;
     box-sizing: border-box;
   }
@@ -1840,18 +1851,18 @@
     color: var(--accent);
   }
 
-  /* Cell remove (delete cell) & insert buttons */
+  /* Cell remove (delete cell) & duplicate buttons */
   .cell-remove-btn {
     position: absolute;
     top: 2px;
     right: 2px;
-    width: 16px;
-    height: 16px;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 15px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1860,19 +1871,23 @@
     opacity: 0;
     transition: opacity 0.15s;
     line-height: 1;
+    z-index: 2;
   }
-  .grid-cell:hover .cell-remove-btn {
-    opacity: 0.4;
+  .grid-cell:hover .cell-remove-btn,
+  .grid-cell:active .cell-remove-btn {
+    opacity: 0.6;
   }
   .cell-remove-btn:hover {
     opacity: 1 !important;
     color: var(--error);
+    border-color: var(--error);
   }
   .cell-dup-btn {
-    right: 18px;
+    right: 26px;
   }
   .cell-dup-btn:hover {
     color: var(--accent) !important;
+    border-color: var(--accent);
   }
 
   .cell-insert-btn {
@@ -1924,6 +1939,25 @@
   .add-more-btn {
     margin: 8px 12px 12px;
     flex-shrink: 0;
+  }
+
+  .add-cell-btn {
+    border-style: dashed;
+    background: transparent;
+    opacity: 0.25;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+  .add-cell-btn:hover {
+    opacity: 0.7;
+    border-color: var(--accent);
+  }
+  .add-cell-plus {
+    color: var(--text-muted);
+    font-size: 28px;
+    line-height: 1;
+  }
+  .add-cell-btn:hover .add-cell-plus {
+    color: var(--accent);
   }
 
   @media (max-width: 767px) {

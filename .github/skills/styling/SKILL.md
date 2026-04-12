@@ -125,6 +125,7 @@ select, input[type="text"] {
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
+  font-size: 16px; /* minimum 16px — prevents iOS Safari auto-zoom on focus */
 }
 ```
 
