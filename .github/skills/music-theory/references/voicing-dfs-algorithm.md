@@ -131,6 +131,6 @@ function effectiveFingerCount(v: Voicing): number {
 3. Require 3+ strings for max-fret barres
 4. **Feasibility checks**:
    - No fret-0 (open) strings between lowest sounding string and barre end
-   - All strings from..to fretted at ≥ barre fret (no mutes break continuity)
+   - All *sounding* strings from..to fretted at ≥ barre fret (muted strings allowed — barre lays across them)
    - Treble-side strings beyond barre end fretted at ≥ barre fret
 5. Return `Barre[]` with `{ fret, fromString, toString }`

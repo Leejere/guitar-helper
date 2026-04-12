@@ -91,7 +91,7 @@ Standard guitar voicing rules allow omitting certain notes:
 
 ### Barre Detection
 
-`detectBarres()`: Identifies barres (index finger laid across multiple strings at same fret). Checks: min-fret or max-fret position, no open strings breaking continuity, all covered strings fretted at ≥ barre fret.
+`detectBarres()`: Identifies barres (index finger laid across multiple strings at same fret). Checks: min-fret or max-fret position, no open strings breaking continuity, all *sounding* strings in range fretted at ≥ barre fret (muted strings are allowed within the barre range).
 
 ## CAGED Shape System
 

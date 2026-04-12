@@ -406,11 +406,11 @@ export function detectBarres(frets: number[]): Barre[] {
     }
     if (hasOpenBelow) continue;
 
-    // Verify all strings between from..to are fretted at >= this fret
-    // (muted strings break the barre)
+    // Verify all sounding strings between from..to are fretted at >= this fret.
+    // Muted strings (-1) are allowed — the barre finger still lays across them.
     let validBarre = true;
     for (let s = from; s <= to; s++) {
-      if (frets[s] < fret) {
+      if (frets[s] >= 0 && frets[s] < fret) {
         validBarre = false;
         break;
       }
