@@ -81,6 +81,9 @@ interface VoicingSearchOptions {
   requireRoot?: boolean;
   /** For slash chords: pitch class that must be the lowest sounding note */
   requiredBass?: string;
+  /** When provided, voicings that pass the DFS but were excluded by quality filters
+   *  (non-root bass, redundant mutes, beyond maxResults) get pushed here. */
+  othersOut?: Voicing[];
 }
 
 /**
@@ -138,6 +141,7 @@ export function findVoicings(
     maxSpan = 4,
     maxResults = 20,
     requiredBass,
+    othersOut,
   } = options;
 
   if (chordNotes.length === 0) return [];
@@ -267,7 +271,9 @@ export function findVoicings(
   search(0, [], 0, 0, new Set(), 0, false);
 
   // Filter out physically impossible voicings (more than 4 effective fingers)
-  let playable = results.filter(v => effectiveFingerCount(v) <= 4);
+  const physicallyPlayable = results.filter(v => effectiveFingerCount(v) <= 4);
+
+  let playable = [...physicallyPlayable];
 
   // For non-slash chords: eliminate voicings whose bass note isn't the root
   if (requiredBassChroma === undefined && rootSemitone !== undefined) {
@@ -317,6 +323,25 @@ export function findVoicings(
   // Assign ranks (already sorted by playability descending from rankVoicings)
   for (let i = 0; i < top.length; i++) {
     top[i].rank = i + 1;
+  }
+
+  // Collect "other" voicings: physically playable but excluded by quality filters or maxResults cap
+  if (othersOut) {
+    const topKeys = new Set(top.map(v => v.frets.join(',')));
+    let others = physicallyPlayable.filter(v =>
+      !topKeys.has(v.frets.join(',')) && v.frets.filter(f => f !== -1).length >= 3
+    );
+    others = rankVoicings(others, rootSemitone, tuning, chordSemitones, requiredBassChroma).slice(0, maxResults);
+    for (const v of others) {
+      v.caged = classifyCAGED(v, rootPC, tuning);
+      const fretted = v.frets.filter(f => f > 0);
+      const hasOpen = v.frets.some(f => f === 0);
+      v.positionGroup = (fretted.length === 0 || hasOpen) ? 'Open position' : `Fret ${Math.min(...fretted)}`;
+    }
+    for (let i = 0; i < others.length; i++) {
+      others[i].rank = i + 1;
+    }
+    othersOut.push(...others);
   }
 
   return top;

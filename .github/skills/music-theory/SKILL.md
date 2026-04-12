@@ -51,7 +51,7 @@ Categorization via regex-based suffix matching with precedence chain.
 
 **Algorithm**: Depth-first search (DFS) over all combinations of fret positions across 6 strings, with aggressive pruning to keep search fast.
 
-**Key parameters**: `maxFret` (default 15), `maxSpan` (default 4 frets), `maxResults` (default 20)
+**Key parameters**: `maxFret` (default 15), `maxSpan` (default 4 frets), `maxResults` (default 20), `othersOut` (optional array to collect excluded voicings)
 
 **Pipeline**:
 1. Input normalization (chord tones, omittable notes, enharmonic respelling)
@@ -60,6 +60,7 @@ Categorization via regex-based suffix matching with precedence chain.
 4. Post-search filtering (bass, string coverage, redundant mutes)
 5. Scoring & ranking (14-factor playability)
 6. CAGED classification
+7. If `othersOut` provided: physically playable voicings excluded by quality filters or maxResults cap are ranked, classified, and pushed into the array
 
 Full DFS algorithm details: [voicing-dfs-algorithm.md](./references/voicing-dfs-algorithm.md)
 

@@ -78,6 +78,7 @@
   // --- Voicings phase state ---
   let activeChordSymbol = $state(cfs.activeChordSymbol);
   let voicings: Voicing[] = $state([]);
+  let otherVoicings: Voicing[] = $state([]);
   let errorMsg = $state('');
   let selectedIdx: number | null = $state(cfs.selectedIdx);
   let chordNotes: string[] = $state([]);
@@ -86,7 +87,7 @@
 
   // New filter/sort state for voicing list
   let filterCaged: string[] = $state([]); // empty = all, or CAGED labels like ['E shape', 'Am7 shape']
-  let collapsedGroups = $state(new Set<string>()); // collapsed position group labels
+  let collapsedGroups = $state(new Set<string>(['__others__'])); // collapsed position group labels
 
   // Fret selection: null = nothing selected (list hidden), 'all' = show all by playability, or position group string
   let selectedFretFilter: string | null = $state(cfs.selectedFretFilter);
@@ -226,6 +227,16 @@
     return list;
   });
 
+  // Filter other voicings by the same fret selection
+  let filteredOtherVoicings = $derived.by(() => {
+    if (!selectedFretFilter) return [];
+    let list = otherVoicings;
+    if (selectedFretFilter !== 'all') {
+      list = list.filter(v => v.positionGroup === selectedFretFilter);
+    }
+    return list;
+  });
+
   // Fret selector items: one per position group, with its best voicing and labels
   interface FretSelectorItem {
     positionGroup: string;
@@ -307,7 +318,12 @@
     });
   });
 
-  let selectedVoicing = $derived(selectedIdx !== null ? voicings[selectedIdx] : null);
+  let selectedVoicing = $derived.by(() => {
+    if (selectedIdx === null) return null;
+    if (selectedIdx < voicings.length) return voicings[selectedIdx];
+    return otherVoicings[selectedIdx - voicings.length] ?? null;
+  });
+  let selectedIsOther = $derived(selectedIdx !== null && selectedIdx >= voicings.length);
 
   // Keep last valid voicing for fretboard display even when filters produce no results
   let lastActiveVoicing: number[] | null = $state(null);
@@ -345,6 +361,7 @@
   function loadVoicings(symbol: string, bassNote?: string) {
     errorMsg = '';
     voicings = [];
+    otherVoicings = [];
     selectedIdx = null;
     lastActiveVoicing = null;
     chordNotes = [];
@@ -352,7 +369,7 @@
     filterPositions = [];
     selectedFretFilter = null;
     filterCaged = [];
-    collapsedGroups = new Set();
+    collapsedGroups = new Set(['__others__']);
     mobileView = 'fretboard';
 
     const input = normalizeInput(symbol);
@@ -365,13 +382,16 @@
     chordNotes = chord.notes;
     chordRoot = chord.tonic || null;
     const resolvedBass = bassNote ?? (chord.bass && chord.bass !== chord.tonic ? chord.bass : undefined);
+    const others: Voicing[] = [];
     voicings = findVoicings(chord.notes, {
       tuning: selectedTuning.notes,
       maxFret: 15,
       maxSpan: 4,
       maxResults: 40,
       requiredBass: resolvedBass,
+      othersOut: others,
     });
+    otherVoicings = others;
 
     if (voicings.length === 0) {
       errorMsg = `No playable voicings found for "${displayAccidental(symbol)}" in ${selectedTuning.name} tuning.`;
@@ -391,6 +411,7 @@
     phase = 'browse';
     activeChordSymbol = '';
     voicings = [];
+    otherVoicings = [];
     errorMsg = '';
   }
 
@@ -972,6 +993,65 @@
               {/each}
               {/if}
             {/each}
+            {#if filteredOtherVoicings.length > 0}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="position-group-header other-possibilities-header" onclick={() => toggleGroup('__others__')}>
+                <span class="group-chevron" class:collapsed={collapsedGroups.has('__others__')}>&#9662;</span>
+                Other possibilities <span class="group-count">({filteredOtherVoicings.length})</span>
+              </div>
+              {#if !collapsedGroups.has('__others__')}
+              {#each filteredOtherVoicings as v, idx}
+                {@const pk = pool.keyFor(v.frets, activeChordSymbol)}
+                {@const inPool = pool.entries.some(e => e.key === pk)}
+                {@const usedInProg = progression.hasPoolKey(pk)}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  class="voicing-item"
+                  class:active={selectedIdx === voicings.length + idx}
+                  onclick={() => selectVoicing(voicings.length + idx)}
+                >
+                  <span class="voicing-frets">{fretLabel(v)}</span>
+                  <span class="voicing-tags">
+                    {#if v.caged}
+                      {#if onNavigateToShape}
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <span class="tag tag-caged tag-clickable" onclick={(e) => { e.stopPropagation(); onNavigateToShape?.(v.caged!.shape, v.caged!.position); }}>{v.caged.label}</span>
+                      {:else}
+                        <span class="tag tag-caged">{v.caged.label}</span>
+                      {/if}
+                    {:else}
+                      <span class="tag tag-other">Other shape</span>
+                    {/if}
+                    {#if selectedFretFilter === 'all'}
+                      <span class="tag tag-pos">{positionLabel(v)}</span>
+                    {/if}
+                    {#if v.barres.length > 0}
+                      <span class="tag tag-barre">Barre fret {v.barres[0].fret}</span>
+                    {/if}
+                  </span>
+                  <span class="voicing-score" title="Playability ranking">Ranked {v.rank}/{otherVoicings.length}</span>
+                  <span class="voicing-actions">
+                    <button
+                      class="voicing-action-btn"
+                      class:in-pool={inPool}
+                      class:disabled={inPool && usedInProg}
+                      title={inPool ? (usedInProg ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+                      disabled={inPool && usedInProg}
+                      onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show('Removed from pool'); } } else { pool.add(v, selectedTuning, activeChordSymbol); toast.show('Added to pool'); } }}
+                    >{inPool ? '− Delete from pool' : '+ Add to pool'}</button>
+                    <button
+                      class="voicing-action-btn"
+                      title="Add to progression"
+                      onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(v, selectedTuning, activeChordSymbol); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show('Placed into progression cell'); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show('Added to progression'); } }}
+                    >+ Add to progression</button>
+                  </span>
+                </div>
+              {/each}
+              {/if}
+            {/if}
           </div>
         </div>
 
@@ -979,7 +1059,7 @@
           {#if selectedVoicing}
             <div class="section-title">
               {fretLabel(selectedVoicing)}
-              <span class="detail-score" title="Playability ranking">Ranked {selectedVoicing.rank}/{voicings.length}</span>
+              <span class="detail-score" title="Playability ranking">Ranked {selectedVoicing.rank}/{selectedIsOther ? otherVoicings.length : voicings.length}</span>
             </div>
             <div class="detail-tags">
               <span class="tag tag-pos">{positionLabel(selectedVoicing)}</span>
@@ -1387,6 +1467,12 @@
     transform: rotate(-90deg);
   }
 
+  .other-possibilities-header {
+    margin-top: 8px;
+    border-top: 2px solid var(--border);
+    color: var(--text-muted);
+  }
+
   .group-count {
     font-weight: 400;
     color: var(--text-muted);
@@ -1527,6 +1613,8 @@
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
   }
 
   .tag {
@@ -1576,10 +1664,8 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text-muted);
-    margin-left: auto;
     font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
-    min-width: 7em;
-    text-align: left;
+    white-space: nowrap;
     opacity: 0.7;
   }
 
