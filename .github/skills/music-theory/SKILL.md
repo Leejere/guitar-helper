@@ -80,7 +80,7 @@ Full DFS algorithm details: [voicing-dfs-algorithm.md](./references/voicing-dfs-
 ### Omittable Notes
 
 Standard guitar voicing rules allow omitting certain notes:
-- **Perfect 5th** (7 semitones): omittable if 4+ note chord (redundant in overtone series)
+- **Perfect 5th** (7 semitones): omittable if 3+ note chord (triads and larger; redundant in overtone series)
 - **9th** (1-2 semitones): omittable if 6+ note chord
 - **11th** (5-6 semitones): omittable if 7+ note chord
 - Augmented/diminished 5ths are **never** omitted (they're characteristic)
@@ -143,6 +143,7 @@ Only chords that exist in the database are returned. The first 4 are shown inlin
 `identifyChords()`:
 1. Build fret array with NaN for unspecified strings
 2. Generate all 2^n open/muted combinations for unknowns
-3. Extract notes, run `tonal.Chord.detect()`, deduplicate
-4. **Exact matches**: all user selections used
-5. **Vague matches** (3+ selections): iteratively drop each selection, try muted (capped at 64 combos/drop)
+3. Extract notes, deduplicate pitch classes, run `tonal.Chord.detect()`
+4. **Implied 5th inference**: if only 2 unique pitch classes and no match, try adding a perfect 5th above each PC and re-detect (catches root+3rd voicings like B,D → Bm)
+5. **Exact matches**: all user selections used
+6. **Vague matches** (3+ selections): iteratively drop each selection, try muted (capped at 64 combos/drop)

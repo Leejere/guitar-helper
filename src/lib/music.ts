@@ -64,7 +64,8 @@ export function identifyChords(
     const notes = getNotesFromFrets(frets);
     if (notes.length < 2) continue;
     const pcs = notes.map(n => Note.pitchClass(n));
-    const detected = Chord.detect(pcs).map(formatChordName);
+    const uniquePcs = [...new Set(pcs)];
+    const detected = Chord.detect(uniquePcs).map(formatChordName);
     for (const name of detected) {
       const key = `${name}|${frets.join(',')}`;
       if (seen.has(key)) continue;
@@ -72,6 +73,23 @@ export function identifyChords(
       if (!seen.has(`name:${name}`)) {
         seen.add(`name:${name}`);
         results.push({ name, frets: [...frets], exact: true });
+      }
+    }
+    // If only 2 unique pitch classes, try adding an implied perfect 5th above each
+    // to detect chords with omitted 5th (e.g. B,D → B,D,F# → Bm)
+    if (uniquePcs.length === 2 && detected.length === 0) {
+      for (const pc of uniquePcs) {
+        const fifth = Note.transpose(pc, '5P');
+        if (!fifth) continue;
+        const fifthPc = Note.pitchClass(fifth);
+        if (uniquePcs.includes(fifthPc)) continue;
+        const augmented = [...uniquePcs, fifthPc];
+        const inferred = Chord.detect(augmented).map(formatChordName);
+        for (const name of inferred) {
+          if (seen.has(`name:${name}`)) continue;
+          seen.add(`name:${name}`);
+          results.push({ name, frets: [...frets], exact: true });
+        }
       }
     }
   }

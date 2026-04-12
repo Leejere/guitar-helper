@@ -102,8 +102,8 @@ function getOmittableNotes(chordSemitones: Set<number>, rootSemitone: number | u
   if (rootSemitone === undefined) return omittable;
   const size = chordSemitones.size;
 
-  // Perfect 5th — omittable for 4+ note chords
-  if (size >= 4) {
+  // Perfect 5th — omittable for 3+ note chords (triads and larger)
+  if (size >= 3) {
     const p5 = (rootSemitone + 7) % 12;
     if (chordSemitones.has(p5)) omittable.add(p5);
   }
