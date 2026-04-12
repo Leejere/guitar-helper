@@ -25,6 +25,7 @@ Consult these before making changes in their domain. Each is in `.github/skills/
 | **music-theory** | Chord database, voicing generation (DFS), scoring, CAGED shapes, barre detection |
 | **progression-builder** | Progression grid, drag-and-drop, pool, quick-add, PDF export, URL sharing |
 | **persistence** | localStorage keys, URL encoding/decoding, hydration flow |
+| **cross-module-navigation** | Cross-tab navigation callbacks, voicing injection, index encoding, $effect ordering |
 
 ## Rules
 

@@ -12,3 +12,4 @@ Check for:
 - Changed CSS patterns, variables, or visual conventions → update **styling** skill
 - Changed breakpoints, layout strategies, or responsive behavior → update **layout** skill
 - Changed progression grid, drag-and-drop, pool, or export logic → update **progression-builder** skill
+- Changed cross-tab navigation, voicing injection, index encoding, or $effect guards → update **cross-module-navigation** skill
