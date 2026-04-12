@@ -315,6 +315,47 @@ export function filterChords(filters: ChordFilters): ChordEntry[] {
     return withSlash;
   }
 
+  // When search contains '/' with a valid bass note (e.g. "C/B", "Am/G"),
+  // generate dynamic slash entries from matching root-position chords
+  if (search && !slashBass && search.includes('/')) {
+    const slashIdx = search.indexOf('/');
+    const baseSearch = search.slice(0, slashIdx);
+    const bassRaw = search.slice(slashIdx + 1);
+    // Capitalize first letter to match note format, e.g. "b" → "B", "bb" → "Bb"
+    const bassNorm = bassRaw.charAt(0).toUpperCase() + bassRaw.slice(1);
+    if (baseSearch.length > 0 && FILTER_ROOTS.map(r => r.toLowerCase()).includes(bassNorm.toLowerCase())) {
+      const bassNote = FILTER_ROOTS.find(r => r.toLowerCase() === bassNorm.toLowerCase())!;
+      const existingSymbols = new Set(results.map(e => e.symbol));
+      // Find root-position entries matching the base part
+      for (const entry of db) {
+        if (entry.bassNote) continue;
+        const sym = entry.symbol.toLowerCase();
+        if (!symbolMatches(sym, baseSearch)) continue;
+        if (entry.root === bassNote) {
+          // C/C is just C — include the original if not already present
+          if (!existingSymbols.has(entry.symbol)) {
+            results.push(entry);
+            existingSymbols.add(entry.symbol);
+          }
+        } else {
+          const slashSymbol = `${entry.symbol}/${bassNote}`;
+          if (!existingSymbols.has(slashSymbol)) {
+            results.push({
+              symbol: slashSymbol,
+              root: entry.root,
+              typeSuffix: entry.typeSuffix,
+              typeName: entry.typeName,
+              category: entry.category,
+              keys: entry.keys,
+              bassNote: bassNote,
+            });
+            existingSymbols.add(slashSymbol);
+          }
+        }
+      }
+    }
+  }
+
   // Sort by search relevance when a text query is present
   if (search) {
     results.sort((a, b) => searchRelevance(a, search) - searchRelevance(b, search));

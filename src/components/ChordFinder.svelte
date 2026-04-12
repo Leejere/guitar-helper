@@ -845,7 +845,7 @@
                   <button
                     class="fret-selector-btn"
                     class:active={selectedFretFilter === item.positionGroup}
-                    onclick={() => { if (selectedFretFilter !== item.positionGroup) { selectedFretFilter = item.positionGroup; if (!isTablet) mobileView = 'detail'; } }}
+                    onclick={() => { selectedFretFilter = item.positionGroup; if (!isTablet) mobileView = 'detail'; }}
                   >
                     {@render mobileFretSelectorBtnContent(item)}
                   </button>
@@ -855,7 +855,7 @@
                 <button
                   class="fret-selector-btn fret-selector-all"
                   class:active={selectedFretFilter === 'all'}
-                  onclick={() => { if (selectedFretFilter !== 'all') { selectedFretFilter = 'all'; if (!isTablet) mobileView = 'detail'; } }}
+                  onclick={() => { selectedFretFilter = 'all'; if (!isTablet) mobileView = 'detail'; }}
                 >
                   <span class="mobile-selector-text">
                     <span class="fret-selector-label">All</span>

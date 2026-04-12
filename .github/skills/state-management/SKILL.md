@@ -46,6 +46,10 @@ export const exampleState = new ExampleState()  // singleton
 5. **`hydrate()` in constructor** — restore state on page load
 6. **try/catch** around localStorage — graceful degradation
 
+## Fret Selection Invariant
+
+**A fret must always remain selected once one is chosen.** In Chord Finder (`selectedFretFilter`) and Shape Explorer (`selectedPosition`), clicking the already-selected fret is a no-op — it must NOT deselect/toggle to `null`. Users switch frets by clicking a different one. This applies to all fret selector buttons (mobile, desktop, and "All").
+
 ## Svelte 5 Runes Reference
 
 | Rune | Purpose | Example |

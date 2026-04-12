@@ -27,16 +27,17 @@ Database is lazy-loaded and memoized via `getChordDatabase()`:
 
 Categorization via regex-based suffix matching with precedence chain.
 
-### 6-Filter Pipeline — `filterChords()`
+### 7-Filter Pipeline — `filterChords()`
 
 | Filter | Logic |
 |--------|-------|
-| `search` | Case-insensitive symbol/typeName matching with relevance scoring (exact > starts-with > contains) |
+| `search` | Case-insensitive symbol/typeName matching with relevance scoring (exact > starts-with > contains). When search contains `/` with a valid bass note (e.g. "C/B"), dynamically generates non-inversion slash entries from matching base chords. |
 | `roots` | Multi-select: filter by chroma (pitch class number 0-11) |
 | `keys` | Multi-select: filter to diatonically valid chords in chosen keys |
 | `categories` | Multi-select: match chord category |
-| `voicings` | Root position vs slash chord distinction |
+| `voicings` | Root position vs slash chord distinction (skipped when `slashBass` active) |
 | `scale` | Filter to diatonic chords of a scale+mode (e.g., "C dorian") |
+| `slashBass` | When set (e.g. "E"), filters root-position chords only, then generates dynamic `chord/bass` entries. Skips redundant slash (C/C → C). |
 
 ### Scale Mode System
 

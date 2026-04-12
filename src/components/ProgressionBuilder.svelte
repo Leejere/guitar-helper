@@ -59,6 +59,7 @@
       categories: [],
       voicings: [],
       scale: '',
+      slashBass: '',
     }).slice(0, 8);
     quickResults = entries.map(e => ({ ...e, topVoicingStr: getTopVoicingStr(e) }));
     quickDropdownOpen = quickResults.length > 0;
@@ -255,6 +256,7 @@
       categories: [],
       voicings: [],
       scale: '',
+      slashBass: '',
     }).slice(0, 6);
     cellQuickResults = entries.map(e => ({ ...e, topVoicingStr: getTopVoicingStr(e) }));
     cellQuickOpen = cellPoolMatches.length > 0 || cellQuickResults.length > 0;
