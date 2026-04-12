@@ -99,6 +99,17 @@ export class ProgressionState {
     this.persist();
   }
 
+  /** Remove cell at fromIdx and insert it before toIdx */
+  relocateCell(fromIdx: number, toIdx: number) {
+    if (fromIdx < 0 || fromIdx >= this.cells.length) return;
+    const cell = this.cells[fromIdx];
+    this.cells.splice(fromIdx, 1);
+    // Adjust target index since array shifted
+    const adjustedTo = toIdx > fromIdx ? toIdx - 1 : toIdx;
+    this.cells.splice(adjustedTo, 0, cell);
+    this.persist();
+  }
+
   /** Insert an empty cell at idx, shifting later cells right */
   insertCellAt(idx: number) {
     if (idx < 0 || idx > this.cells.length) return;

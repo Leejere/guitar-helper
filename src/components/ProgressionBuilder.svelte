@@ -483,6 +483,7 @@
   // Drag state
   let dragSource: { type: 'pool' | 'progression'; key?: string; idx?: number } | null = $state(null);
   let dragOverIdx: number | null = $state(null);
+  let dragOverInsertIdx: number | null = $state(null);
   let dragOverZone: 'pool' | 'progression' | null = $state(null);
 
   function toggleSelectMode() {
@@ -639,6 +640,7 @@
   function handleCellDragOver(e: DragEvent, idx: number) {
     e.preventDefault();
     dragOverIdx = idx;
+    dragOverInsertIdx = null;
     dragOverZone = 'progression';
   }
 
@@ -656,7 +658,8 @@
       const fromIdx = dragSource.idx;
       if (fromIdx !== idx) {
         if (progression.cells[idx].poolKey === null) {
-          progression.moveToEmpty(fromIdx, idx);
+          // Move to empty cell: relocate (delete original, insert at target)
+          progression.relocateCell(fromIdx, idx);
         } else {
           progression.swapCells(fromIdx, idx);
         }
@@ -665,6 +668,39 @@
 
     dragSource = null;
     dragOverIdx = null;
+    dragOverInsertIdx = null;
+    dragOverZone = null;
+  }
+
+  function handleInsertDragOver(e: DragEvent, insertIdx: number) {
+    if (!dragSource) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragOverInsertIdx = insertIdx;
+    dragOverIdx = null;
+    dragOverZone = 'progression';
+  }
+
+  function handleInsertDrop(e: DragEvent, insertIdx: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragSource) return;
+
+    if (dragSource.type === 'progression' && dragSource.idx !== undefined) {
+      const fromIdx = dragSource.idx;
+      // Don't insert at the same position or the one right after (no-op)
+      if (fromIdx !== insertIdx && fromIdx + 1 !== insertIdx) {
+        progression.relocateCell(fromIdx, insertIdx);
+      }
+    } else if (dragSource.type === 'pool' && dragSource.key) {
+      // Insert a new cell from pool
+      progression.insertCellAt(insertIdx);
+      progression.pushToCell(dragSource.key, insertIdx);
+    }
+
+    dragSource = null;
+    dragOverIdx = null;
+    dragOverInsertIdx = null;
     dragOverZone = null;
   }
 
@@ -688,6 +724,7 @@
   function handleDragEnd() {
     dragSource = null;
     dragOverIdx = null;
+    dragOverInsertIdx = null;
     dragOverZone = null;
   }
 
@@ -697,6 +734,8 @@
 
   function handleReturnFromProgression(idx: number) {
     progression.returnFromProgression(idx);
+    // Show quick-add immediately in the now-empty cell
+    showCellQuick(idx);
   }
 
   function handleDeleteFromPool(key: string) {
@@ -952,6 +991,7 @@
           bind:this={progressionGridEl}
           class="progression-grid"
           class:mobile={isMobile}
+          class:dragging={!!dragSource}
           onpointerup={endSweep}
           onpointerleave={endSweep}
         >
@@ -998,9 +1038,9 @@
                       {#if !selectMode}
                         <button
                           class="cell-action-btn"
-                          title="Remove from progression"
+                          title="Remove from cell"
                           onclick={(e) => { e.stopPropagation(); handleReturnFromProgression(idx); }}
-                        >‹</button>
+                        >✕</button>
                       {/if}
                     </div>
                   </div>
@@ -1093,8 +1133,12 @@
               <!-- Insert cell gutter -->
               <button
                 class="cell-insert-btn"
+                class:insert-drag-over={dragOverInsertIdx === idx + 1}
                 title="Insert cell"
                 onclick={(e) => { e.stopPropagation(); handleInsertCell(idx + 1); }}
+                ondragover={(e) => handleInsertDragOver(e, idx + 1)}
+                ondragleave={() => { if (dragOverInsertIdx === idx + 1) dragOverInsertIdx = null; }}
+                ondrop={(e) => handleInsertDrop(e, idx + 1)}
               >+</button>
             </div>
           {/each}
@@ -1851,7 +1895,7 @@
     justify-content: center;
     padding: 0;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, width 0.15s, height 0.15s, right 0.15s;
     z-index: 2;
     line-height: 1;
   }
@@ -1863,6 +1907,19 @@
     color: var(--accent);
     background: var(--bg-card);
     border: 1px solid var(--accent);
+  }
+  /* During drag: show the + button visibly so user can target it */
+  .progression-grid.dragging .cell-insert-btn {
+    opacity: 1;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border: 1.5px solid var(--accent);
+  }
+  .cell-insert-btn.insert-drag-over {
+    opacity: 1 !important;
+    color: #fff !important;
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
   }
 
   /* Add More button */
