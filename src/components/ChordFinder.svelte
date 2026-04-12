@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { getChord, displayAccidental, normalizeInput, getIntervalLabel } from '../lib/music';
-  import { findVoicings, voicingToString, type Voicing, type CAGEDShape } from '../lib/voicings';
+  import { getChord, displayAccidental, normalizeInput, getIntervalLabel, fretsToVoicing } from '../lib/music';
+  import { findVoicings, voicingToString, classifyCAGED, type Voicing, type CAGEDShape } from '../lib/voicings';
   import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
   import { filterChords, getChordDatabase, ALL_CATEGORIES, FILTER_ROOTS, SCALE_MODES, getScaleChordsByDegree, type ChordEntry, type ScaleDegreeGroup } from '../lib/chords';
   import { Note, Interval } from 'tonal';
-  import { untrack } from 'svelte';
+  import { untrack, tick } from 'svelte';
   import Fretboard from './Fretboard.svelte';
   import ChordDiagram from './ChordDiagram.svelte';
   import MiniChordDiagram from './MiniChordDiagram.svelte';
@@ -31,10 +31,11 @@
 
   interface Props {
     initialChord?: string;
+    initialFrets?: number[];
     onNavigateToShape?: (shape: CAGEDShape, position: number, variantIdx?: number) => void;
   }
 
-  let { initialChord, onNavigateToShape }: Props = $props();
+  let { initialChord, initialFrets, onNavigateToShape }: Props = $props();
 
   // --- Shared state (persisted via singleton) ---
   let selectedTuning = $state(cfs.selectedTuning);
@@ -419,11 +420,50 @@
   // Also restore voicings from persisted state on mount
   $effect(() => {
     const chord = initialChord;
+    const frets = initialFrets;
     if (chord) {
       untrack(() => {
         activeChordSymbol = chord;
         loadVoicings(chord);
         phase = 'voicings';
+
+        // If frets were provided (e.g. from Chord Identifier), find and select the matching voicing
+        if (frets) {
+          const fretKey = frets.join(',');
+          let matchIdx = voicings.findIndex(v => v.frets.join(',') === fretKey);
+          if (matchIdx === -1) {
+            const otherIdx = otherVoicings.findIndex(v => v.frets.join(',') === fretKey);
+            if (otherIdx !== -1) {
+              matchIdx = voicings.length + otherIdx;
+            } else {
+              // Voicing not in either list (filtered out by DFS cap or redundant-mute elimination).
+              // Inject it into otherVoicings so the user always sees what they clicked.
+              const injected = fretsToVoicing(frets, selectedTuning.notes);
+              const rootPC = chordNotes[0];
+              injected.caged = rootPC ? classifyCAGED(injected, rootPC, selectedTuning.notes) : undefined;
+              const fretted = frets.filter(f => f > 0);
+              const hasOpen = frets.some(f => f === 0);
+              injected.positionGroup = (fretted.length === 0 || hasOpen) ? 'Open position' : `Fret ${Math.min(...fretted)}`;
+              injected.rank = otherVoicings.length + 1;
+              otherVoicings = [...otherVoicings, injected];
+              matchIdx = voicings.length + otherVoicings.length - 1;
+            }
+            // Expand the "Other possibilities" group
+            const next = new Set(collapsedGroups);
+            next.delete('__others__');
+            collapsedGroups = next;
+          }
+          if (matchIdx !== -1) {
+            const matched = matchIdx < voicings.length ? voicings[matchIdx] : otherVoicings[matchIdx - voicings.length];
+            selectedFretFilter = matched.positionGroup;
+            selectedIdx = matchIdx;
+            // Scroll to the selected voicing after DOM updates
+            tick().then(() => {
+              const el = document.querySelector('.voicing-item.active');
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+          }
+        }
       });
     } else if (phase === 'voicings' && activeChordSymbol && voicings.length === 0 && !errorMsg) {
       untrack(() => {
@@ -482,6 +522,8 @@
     const fv = filteredVoicings;
     untrack(() => {
       if (fv.length > 0 && selectedFretFilter) {
+        // Don't override when an "other" voicing is selected (e.g. navigated from Identifier)
+        if (selectedIdx !== null && selectedIdx >= voicings.length) return;
         if (selectedIdx === null || !fv.includes(voicings[selectedIdx!])) {
           selectedIdx = voicings.indexOf(fv[0]);
         }
@@ -1001,7 +1043,8 @@
                 Other possibilities <span class="group-count">({filteredOtherVoicings.length})</span>
               </div>
               {#if !collapsedGroups.has('__others__')}
-              {#each filteredOtherVoicings as v, idx}
+              {#each filteredOtherVoicings as v}
+                {@const otherOrigIdx = otherVoicings.indexOf(v)}
                 {@const pk = pool.keyFor(v.frets, activeChordSymbol)}
                 {@const inPool = pool.entries.some(e => e.key === pk)}
                 {@const usedInProg = progression.hasPoolKey(pk)}
@@ -1009,8 +1052,8 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                   class="voicing-item"
-                  class:active={selectedIdx === voicings.length + idx}
-                  onclick={() => selectVoicing(voicings.length + idx)}
+                  class:active={selectedIdx === voicings.length + otherOrigIdx}
+                  onclick={() => selectVoicing(voicings.length + otherOrigIdx)}
                 >
                   <span class="voicing-frets">{fretLabel(v)}</span>
                   <span class="voicing-tags">

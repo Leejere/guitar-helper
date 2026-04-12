@@ -14,6 +14,7 @@
   type Tab = 'home' | 'map' | 'finder' | 'identifier' | 'shapes' | 'progression';
   let activeTab: Tab = $state('home');
   let finderChord: string | undefined = $state(undefined);
+  let finderFrets: number[] | undefined = $state(undefined);
 
   // Check for shared progression URL on load
   {
@@ -85,8 +86,9 @@
     }
   });
 
-  function navigateToChord(chordName: string) {
+  function navigateToChord(chordName: string, frets?: number[]) {
     finderChord = chordName;
+    finderFrets = frets;
     activeTab = 'finder';
   }
 
@@ -157,7 +159,7 @@
     {#if activeTab === 'map'}
       <FretboardMap />
     {:else if activeTab === 'finder'}
-      <ChordFinder initialChord={finderChord} onNavigateToShape={navigateToShape} />
+      <ChordFinder initialChord={finderChord} initialFrets={finderFrets} onNavigateToShape={navigateToShape} />
     {:else if activeTab === 'shapes'}
       <ShapeExplorer
         onNavigateToChord={navigateToChord}

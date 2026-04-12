@@ -12,7 +12,7 @@
   const FB_SVG_WIDTH = 50 + 16 * 75 + 20; // 1270
 
   interface Props {
-    onChordSelect?: (chordName: string) => void;
+    onChordSelect?: (chordName: string, frets?: number[]) => void;
   }
 
   let { onChordSelect }: Props = $props();
@@ -110,7 +110,7 @@
             <h3 class="results-heading">Matches</h3>
             <div class="candidate-grid">
               {#each candidates.exact as candidate}
-                <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name)}>
+                <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
                   <span class="candidate-name">{displayAccidental(candidate.name)}</span>
                   <ChordDiagram
                     voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
@@ -126,7 +126,7 @@
             <h3 class="results-heading">Related chords</h3>
             <div class="candidate-grid">
               {#each candidates.vague as candidate}
-                <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name)}>
+                <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
                   <span class="candidate-name">{displayAccidental(candidate.name)}</span>
                   <ChordDiagram
                     voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
@@ -154,7 +154,7 @@
             <h3 class="results-heading">Matches</h3>
             <div class="candidate-grid">
               {#each candidates.exact as candidate}
-                <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name)}>
+                <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
                   <span class="candidate-name">{displayAccidental(candidate.name)}</span>
                   <ChordDiagram
                     voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
@@ -170,7 +170,7 @@
             <h3 class="results-heading">Related chords</h3>
             <div class="candidate-grid">
               {#each candidates.vague as candidate}
-                <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name)}>
+                <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
                   <span class="candidate-name">{displayAccidental(candidate.name)}</span>
                   <ChordDiagram
                     voicing={fretsToVoicing(candidate.frets, selectedTuning.notes)}
