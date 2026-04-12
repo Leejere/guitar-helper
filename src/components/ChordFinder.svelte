@@ -2,7 +2,7 @@
   import { getChord, displayAccidental, normalizeInput, getIntervalLabel } from '../lib/music';
   import { findVoicings, voicingToString, type Voicing, type CAGEDShape } from '../lib/voicings';
   import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
-  import { filterChords, getChordDatabase, ALL_CATEGORIES, getAllKeys, FILTER_ROOTS, SCALE_MODES, type ChordEntry } from '../lib/chords';
+  import { filterChords, getChordDatabase, ALL_CATEGORIES, getAllKeys, FILTER_ROOTS, SCALE_MODES, getScaleChordsByDegree, type ChordEntry, type ScaleDegreeGroup } from '../lib/chords';
   import { Note, Interval } from 'tonal';
   import { untrack } from 'svelte';
   import Fretboard from './Fretboard.svelte';
@@ -58,6 +58,18 @@
   let filteredChordList = $derived(
     filterChords({ search: searchText, roots: filterRoots, keys: filterKeys, categories: filterCategories, voicings: filterVoicings, scale: filterScale })
   );
+
+  let scaleDegreeGroups = $derived.by(() => {
+    if (!filterScale) return [];
+    const groups = getScaleChordsByDegree(filterScale);
+    if (!groups) return [];
+    return groups
+      .map(g => ({
+        ...g,
+        chords: filteredChordList.filter(e => g.symbols.has(e.symbol)),
+      }))
+      .filter(g => g.chords.length > 0);
+  });
 
   const allKeys = getAllKeys();
 
@@ -129,7 +141,7 @@
   let quickSearchFocused = $state(false);
   let quickSearchResults = $derived(
     quickSearchText.length >= 1
-      ? filterChords({ search: quickSearchText }).slice(0, 12)
+      ? filterChords({ search: quickSearchText, roots: [], keys: [], categories: [], voicings: [], scale: '' }).slice(0, 12)
       : []
   );
 
@@ -473,6 +485,39 @@
     filterScaleMode = '';
   }
 
+  function clearScaleFilter() {
+    filterScaleRoot = '';
+    filterScaleMode = '';
+  }
+
+  function clearNonScaleFilters() {
+    searchText = '';
+    filterRoots = [];
+    filterKeys = [];
+    filterCategories = [];
+    filterVoicings = [];
+  }
+
+  function handleScaleRootClick(r: string) {
+    const newRoot = filterScaleRoot === r ? '' : r;
+    filterScaleRoot = newRoot;
+    if (newRoot) {
+      if (!filterScaleMode) filterScaleMode = 'ionian';
+      clearNonScaleFilters();
+    }
+  }
+
+  function handleScaleModeClick(mode: string) {
+    filterScaleMode = filterScaleMode === mode ? '' : mode;
+    if (filterScaleMode && filterScaleRoot) {
+      clearNonScaleFilters();
+    }
+  }
+
+  function handleNonScaleFilterAction() {
+    clearScaleFilter();
+  }
+
   const hasAnyBrowseFilter = $derived(
     searchText !== '' || filterRoots.length > 0 || filterKeys.length > 0 || filterCategories.length > 0 || filterVoicings.length > 0 || filterScaleRoot !== '' || filterScaleMode !== ''
   );
@@ -502,6 +547,7 @@
               type="text"
               bind:value={searchText}
               onkeydown={handleBrowseKeydown}
+              oninput={handleNonScaleFilterAction}
               placeholder="Type chord name..."
               class="search-input"
             />
@@ -515,7 +561,7 @@
               <button
                 class="filter-btn"
                 class:active={filterRoots.includes(r)}
-                onclick={() => filterRoots = toggleFilter(filterRoots, r)}
+                onclick={() => { handleNonScaleFilterAction(); filterRoots = toggleFilter(filterRoots, r); }}
               >{displayAccidental(r)}</button>
             {/each}
             {#if filterRoots.length > 0}
@@ -531,7 +577,7 @@
               <button
                 class="filter-btn"
                 class:active={filterCategories.includes(cat)}
-                onclick={() => filterCategories = toggleFilter(filterCategories, cat)}
+                onclick={() => { handleNonScaleFilterAction(); filterCategories = toggleFilter(filterCategories, cat); }}
               >{cat}</button>
             {/each}
             {#if filterCategories.length > 0}
@@ -547,7 +593,7 @@
               <button
                 class="filter-btn"
                 class:active={filterKeys.includes(k)}
-                onclick={() => filterKeys = toggleFilter(filterKeys, k)}
+                onclick={() => { handleNonScaleFilterAction(); filterKeys = toggleFilter(filterKeys, k); }}
               >{keyDisplayLabel(k)}</button>
             {/each}
             {#if filterKeys.length > 0}
@@ -562,18 +608,20 @@
             <button
               class="filter-btn"
               class:active={filterVoicings.includes('root')}
-              onclick={() => filterVoicings = toggleFilter(filterVoicings, 'root')}
+              onclick={() => { handleNonScaleFilterAction(); filterVoicings = toggleFilter(filterVoicings, 'root'); }}
             >Root position</button>
             <button
               class="filter-btn"
               class:active={filterVoicings.includes('slash')}
-              onclick={() => filterVoicings = toggleFilter(filterVoicings, 'slash')}
+              onclick={() => { handleNonScaleFilterAction(); filterVoicings = toggleFilter(filterVoicings, 'slash'); }}
             >Slash chords</button>
             {#if filterVoicings.length > 0}
               <button class="filter-row-clear" onclick={() => filterVoicings = []}>&times;</button>
             {/if}
           </div>
         </div>
+
+        <div class="filter-divider"></div>
 
         <div class="filter-row">
           <label class="filter-label">Scale</label>
@@ -584,7 +632,7 @@
                 <button
                   class="filter-btn"
                   class:active={filterScaleRoot === r}
-                  onclick={() => filterScaleRoot = filterScaleRoot === r ? '' : r}
+                  onclick={() => handleScaleRootClick(r)}
                 >{displayAccidental(r)}</button>
               {/each}
             </div>
@@ -595,7 +643,7 @@
                   <button
                     class="filter-btn"
                     class:active={filterScaleMode === mode}
-                    onclick={() => filterScaleMode = filterScaleMode === mode ? '' : mode}
+                    onclick={() => handleScaleModeClick(mode)}
                   >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
                 {/each}
               </div>
@@ -612,19 +660,39 @@
 
     <div class="chord-count">{filteredChordList.length} chord{filteredChordList.length !== 1 ? 's' : ''}</div>
 
-    <div class="chord-grid">
-      {#each filteredChordList as entry}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="chord-card" onclick={() => selectChord(entry.symbol)}>
-          <span class="chord-card-name">{displayAccidental(entry.symbol)}</span>
-          <span class="chord-card-type">{entry.typeName}</span>
-          {#if entry.keys.length > 0}
-            <span class="chord-card-keys">{entry.keys.slice(0, 3).map(k => displayAccidental(k)).join(', ')}{entry.keys.length > 3 ? ', ...' : ''}</span>
-          {/if}
-        </div>
-      {/each}
-    </div>
+    {#if filterScale && scaleDegreeGroups.length > 0}
+      <div class="degree-grouped-grid">
+        {#each scaleDegreeGroups as group}
+          <div class="degree-section">
+            <div class="degree-label">{group.romanLabel}<span class="degree-function"> — {group.functionName}</span></div>
+            <div class="chord-grid">
+              {#each group.chords as entry}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="chord-card" onclick={() => selectChord(entry.symbol)}>
+                  <span class="chord-card-name">{displayAccidental(entry.symbol)}</span>
+                  <span class="chord-card-type">{entry.typeName}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="chord-grid">
+        {#each filteredChordList as entry}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="chord-card" onclick={() => selectChord(entry.symbol)}>
+            <span class="chord-card-name">{displayAccidental(entry.symbol)}</span>
+            <span class="chord-card-type">{entry.typeName}</span>
+            {#if entry.keys.length > 0}
+              <span class="chord-card-keys">{entry.keys.slice(0, 3).map(k => displayAccidental(k)).join(', ')}{entry.keys.length > 3 ? ', ...' : ''}</span>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {/if}
 
     {#if filteredChordList.length === 0}
       <p class="no-match-msg">No chords match the current filters.</p>
@@ -1090,6 +1158,39 @@
     min-width: 36px;
   }
 
+  .filter-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+
+  .degree-grouped-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .degree-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .degree-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .degree-function {
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
   .filter-btn {
     padding: 4px 10px;
     font-size: 12px;
@@ -1147,8 +1248,8 @@
 
   /* Quick search on voicings page */
   .quick-search-group {
-    flex: 0 1 180px;
-    min-width: 120px;
+    flex: 0 1 260px;
+    min-width: 180px;
   }
   .quick-search-group label {
     white-space: nowrap;

@@ -409,3 +409,97 @@ export function getAllScaleOptions(): { value: string; label: string }[] {
   }
   return options;
 }
+
+// ---- Scale degree grouping ----
+
+export interface ScaleDegreeGroup {
+  degree: number;
+  romanLabel: string;
+  functionName: string;
+  rootNote: string;
+  chordSymbol: string;
+  symbols: Set<string>;
+}
+
+const DEGREE_FUNCTIONS = [
+  'Tonic', 'Supertonic', 'Mediant', 'Subdominant', 'Dominant', 'Submediant', 'Leading',
+];
+
+const _scaleDegreeCache = new Map<string, ScaleDegreeGroup[]>();
+
+function computeScaleChordsByDegree(scaleKey: string): ScaleDegreeGroup[] | null {
+  const scale = Scale.get(scaleKey);
+  if (scale.empty || !scale.notes) return null;
+  const notes = scale.notes;
+  const n = notes.length;
+  if (n < 7) return null;
+
+  const db = getChordDatabase();
+  const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+  const groups: ScaleDegreeGroup[] = [];
+
+  for (let i = 0; i < n; i++) {
+    const root = notes[i];
+    const rootChroma = Note.chroma(root) ?? 0;
+    const thirdChroma = Note.chroma(notes[(i + 2) % n]) ?? 0;
+    const fifthChroma = Note.chroma(notes[(i + 4) % n]) ?? 0;
+    const thirdInterval = ((thirdChroma - rootChroma) + 12) % 12;
+    const fifthInterval = ((fifthChroma - rootChroma) + 12) % 12;
+
+    // Determine triad quality and suffix
+    let triadQuality: 'major' | 'minor' | 'dim' | 'aug';
+    let suffix: string;
+    if (thirdInterval === 4 && fifthInterval === 8) { triadQuality = 'aug'; suffix = 'aug'; }
+    else if (thirdInterval === 3 && fifthInterval === 6) { triadQuality = 'dim'; suffix = 'dim'; }
+    else if (thirdInterval === 3) { triadQuality = 'minor'; suffix = 'm'; }
+    else { triadQuality = 'major'; suffix = ''; }
+
+    // Build the expected chord symbol
+    const chordSymbol = formatChordName(root + (suffix || 'M'));
+
+    // Find the root-position entry in db by matching root chroma + suffix
+    const degreeSymbols = new Set<string>();
+    for (const entry of db) {
+      if (entry.bassNote) continue;
+      const entryChroma = Note.chroma(entry.root);
+      if (entryChroma === rootChroma && entry.typeSuffix === suffix) {
+        degreeSymbols.add(entry.symbol);
+      }
+    }
+
+    // Add slash chord inversions of matched base chords
+    const baseSymbols = new Set(degreeSymbols);
+    for (const entry of db) {
+      if (entry.bassNote) {
+        const parent = entry.symbol.split('/')[0];
+        if (baseSymbols.has(parent)) {
+          degreeSymbols.add(entry.symbol);
+        }
+      }
+    }
+
+    // Build roman numeral label
+    let roman = ROMAN[i];
+    if (triadQuality === 'minor') roman = roman.toLowerCase();
+    else if (triadQuality === 'dim') roman = roman.toLowerCase() + '°';
+    else if (triadQuality === 'aug') roman = roman + '+';
+
+    groups.push({
+      degree: i,
+      romanLabel: roman,
+      functionName: DEGREE_FUNCTIONS[i] || '',
+      rootNote: root,
+      chordSymbol,
+      symbols: degreeSymbols,
+    });
+  }
+
+  return groups;
+}
+
+export function getScaleChordsByDegree(scaleKey: string): ScaleDegreeGroup[] | null {
+  if (_scaleDegreeCache.has(scaleKey)) return _scaleDegreeCache.get(scaleKey)!;
+  const result = computeScaleChordsByDegree(scaleKey);
+  if (result) _scaleDegreeCache.set(scaleKey, result);
+  return result;
+}
