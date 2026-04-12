@@ -506,6 +506,7 @@
   }
 
   function handleScaleModeClick(mode: string) {
+    if (filterScaleRoot && filterScaleMode === mode) return;
     filterScaleMode = filterScaleMode === mode ? '' : mode;
     if (filterScaleMode && filterScaleRoot) {
       clearNonScaleFilters();
@@ -595,21 +596,16 @@
                 >{displayAccidental(r)}</button>
               {/each}
             </div>
-            {#if filterScaleRoot}
-              <div class="filter-options-sub">
-                <span class="filter-sublabel">Mode</span>
-                {#each SCALE_MODES as mode}
-                  <button
-                    class="filter-btn"
-                    class:active={filterScaleMode === mode}
-                    onclick={() => handleScaleModeClick(mode)}
-                  >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
-                {/each}
-              </div>
-            {/if}
-            {#if filterScaleRoot || filterScaleMode}
-              <button class="filter-row-clear" onclick={() => { filterScaleRoot = ''; filterScaleMode = ''; }}>&times;</button>
-            {/if}
+            <div class="filter-options-sub">
+              <span class="filter-sublabel">Mode</span>
+              {#each SCALE_MODES as mode}
+                <button
+                  class="filter-btn"
+                  class:active={filterScaleMode === mode}
+                  onclick={() => handleScaleModeClick(mode)}
+                >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
+              {/each}
+            </div>
           </div>
         </div>
 
