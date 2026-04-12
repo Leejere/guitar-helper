@@ -308,6 +308,15 @@
   let progressionGridEl: HTMLDivElement | undefined = $state(undefined);
   let exporting = $state(false);
 
+  // Auto-scroll to last row on mount
+  $effect(() => {
+    const el = progressionGridEl;
+    if (el) {
+      // Use requestAnimationFrame to ensure grid has rendered
+      requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+    }
+  });
+
   async function handleExportPdf() {
     if (!progressionGridEl || exporting) return;
     exporting = true;
