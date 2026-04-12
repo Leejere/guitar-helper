@@ -565,9 +565,15 @@
 
   function duplicateSelected() {
     if (!selectionContiguous) return;
-    progression.duplicateSelection([...selectedCells]);
-    selectedCells = new Set();
-    selectMode = false;
+    const indices = [...selectedCells];
+    const sorted = indices.sort((a, b) => a - b);
+    const count = sorted.length;
+    progression.duplicateSelection(indices);
+    // Copies were inserted before the first selected index, so originals shifted down.
+    // Select the originals (now at sorted[0]+count .. sorted[last]+count) ready to be moved.
+    const next = new Set<number>();
+    for (const i of sorted) next.add(i + count);
+    selectedCells = next;
   }
 
   let selectionContiguous = $derived.by(() => {
