@@ -335,6 +335,22 @@
       progressionGridEl.style.height = 'auto';
       progressionGridEl.style.flex = 'none';
       progressionGridEl.style.gridTemplateColumns = 'repeat(6, 1fr)';
+      // Force light-mode CSS variables inline so html2canvas always renders
+      // the same output regardless of the system color scheme
+      progressionGridEl.style.setProperty('--bg', '#ffffff');
+      progressionGridEl.style.setProperty('--bg-card', '#fafafa');
+      progressionGridEl.style.setProperty('--text', '#1a1a1a');
+      progressionGridEl.style.setProperty('--text-muted', '#666666');
+      progressionGridEl.style.setProperty('--accent', '#8b5e34');
+      progressionGridEl.style.setProperty('--border', '#e0e0e0');
+      progressionGridEl.style.setProperty('--fretboard-bg', '#e8d5b7');
+      progressionGridEl.style.setProperty('--fret-color', '#999999');
+      progressionGridEl.style.setProperty('--string-color', '#b08060');
+      progressionGridEl.style.setProperty('--dot-bg', '#8b5e34');
+      progressionGridEl.style.setProperty('--dot-text', '#ffffff');
+      progressionGridEl.style.setProperty('--root-bg', '#a03030');
+      progressionGridEl.style.setProperty('--nut-color', '#6b5840');
+      progressionGridEl.style.setProperty('color', '#1a1a1a');
       // Hide action buttons inline so html2canvas respects it
       const actionBtns = progressionGridEl.querySelectorAll('.cell-action-btn, .cell-remove-btn, .cell-insert-btn');
       actionBtns.forEach(b => (b as HTMLElement).style.display = 'none');
@@ -344,6 +360,8 @@
         const el = c as HTMLElement;
         el.style.border = 'none';
         el.style.borderRadius = '0';
+        el.style.background = '#fff';
+        el.style.color = '#1a1a1a';
       });
       // Hide empty trailing cells
       const wrappers = progressionGridEl.querySelectorAll('.grid-cell-wrapper');
@@ -387,6 +405,8 @@
         const el = c as HTMLElement;
         el.style.border = '';
         el.style.borderRadius = '';
+        el.style.background = '';
+        el.style.color = '';
       });
       hiddenWrappers.forEach(w => w.style.display = '');
       borderedWrappers.forEach(w => w.style.borderBottom = '');
