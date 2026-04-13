@@ -308,12 +308,18 @@
   let progressionGridEl: HTMLDivElement | undefined = $state(undefined);
   let exporting = $state(false);
 
-  // Auto-scroll to last row on mount
+  // Auto-scroll to last populated cell on mount
   $effect(() => {
     const el = progressionGridEl;
     if (el) {
-      // Use requestAnimationFrame to ensure grid has rendered
-      requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+      requestAnimationFrame(() => {
+        // Find last filled cell in the grid
+        const cells = el.querySelectorAll('.grid-cell.filled');
+        if (cells.length > 0) {
+          const last = cells[cells.length - 1] as HTMLElement;
+          last.scrollIntoView({ block: 'center' });
+        }
+      });
     }
   });
 
