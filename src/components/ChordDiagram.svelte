@@ -5,6 +5,7 @@
   import { pool } from '../lib/pool.svelte';
   import { progression } from '../lib/progression.svelte';
   import { toast } from '../lib/toast.svelte';
+  import { t } from '../lib/i18n.svelte';
   import type { Voicing } from '../lib/voicings';
   import type { Tuning } from '../lib/tunings';
 
@@ -47,13 +48,13 @@
       progression.cells[pending] = { ...progression.cells[pending], poolKey: poolKey };
       progression.persist();
       progression.pendingCellIdx = null;
-      toast.show('Placed voicing into progression cell');
+      toast.show(t('diagram.placedIntoCell'));
       progFlash = true;
       setTimeout(() => progFlash = false, 400);
       setTimeout(() => { progression.pendingNav = 'progression'; }, 1000);
     } else {
       progression.pushFromPool(poolKey);
-      toast.show('Added voicing to the tail of the progression');
+      toast.show(t('diagram.addedToTail'));
       progFlash = true;
       setTimeout(() => progFlash = false, 400);
     }
@@ -64,10 +65,10 @@
     if (isInPool) {
       if (isUsedInProgression) return;
       pool.remove(poolKey);
-      toast.show('Removed voicing from pool');
+      toast.show(t('diagram.removedFromPool'));
     } else {
       pool.add(voicing, tuning, chordName ?? '');
-      toast.show('Added voicing to pool');
+      toast.show(t('diagram.addedToPool'));
       poolFlash = true;
       setTimeout(() => poolFlash = false, 400);
     }
@@ -154,19 +155,19 @@
       class:in-pool={isInPool}
       class:flash={poolFlash}
       class:disabled={isInPool && isUsedInProgression}
-      title={isInPool ? (isUsedInProgression ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+      title={isInPool ? (isUsedInProgression ? t('diagram.usedInProgression') : t('diagram.removeFromPool')) : t('diagram.addToPool')}
       onclick={handlePoolClick}
       disabled={isInPool && isUsedInProgression}
     >
-      {isInPool ? '− Drop' : '+ Pool'}
+      {isInPool ? t('diagram.drop') : t('diagram.pool')}
     </button>
     <button
       class="prog-btn"
       class:flash={progFlash}
-      title="Add to progression"
+      title={t('diagram.addToProgression')}
       onclick={addToProgression}
     >
-      + Progression
+      {t('diagram.progression')}
     </button>
   {/if}
   <svg
@@ -311,12 +312,12 @@
 
   <div class="chord-actions">
     <label class="intervals-toggle" onclick={(e) => e.stopPropagation()}>
-      <span class="toggle-label">Intervals</span>
+      <span class="toggle-label">{t('common.intervals')}</span>
       <span class="toggle-switch" class:on={showIntervals} onclick={() => showIntervals = !showIntervals} role="switch" aria-checked={showIntervals} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showIntervals = !showIntervals; } }}>
         <span class="toggle-knob"></span>
       </span>
     </label>
-    <button class="btn btn-small btn-secondary btn-icon" onclick={(e) => { e.stopPropagation(); handlePlay(); }} title="Play">
+    <button class="btn btn-small btn-secondary btn-icon" onclick={(e) => { e.stopPropagation(); handlePlay(); }} title={t('common.play')}>
       &#9654;
     </button>
   </div>

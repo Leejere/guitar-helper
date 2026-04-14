@@ -7,6 +7,7 @@
   import { ALL_TUNINGS, STANDARD } from '../lib/tunings';
   import { responsive } from '../lib/responsive.svelte';
   import { identifierState } from '../lib/identifier-state.svelte';
+  import { t, tTuning } from '../lib/i18n.svelte';
 
   // Fretboard SVG width (must match Fretboard.svelte defaults: leftPadding=50, fretSpacing=75, fretCount=15, rightPadding=20)
   const FB_SVG_WIDTH = 50 + 16 * 75 + 20; // 1270
@@ -66,22 +67,22 @@
 <div class="page-root">
   <div class="controls no-print">
     <div class="control-group">
-      <label for="tuning-id">Tuning</label>
+      <label for="tuning-id">{t('common.tuning')}</label>
       <select id="tuning-id" value={selectedTuning.name} onchange={handleTuningChange}>
-        {#each ALL_TUNINGS as t}
-          <option value={t.name}>{t.name}</option>
+        {#each ALL_TUNINGS as tn}
+          <option value={tn.name}>{tTuning(tn.name)}</option>
         {/each}
       </select>
     </div>
 
-    <button class="btn btn-secondary" onclick={clearSelection}>Clear</button>
+    <button class="btn btn-secondary" onclick={clearSelection}>{t('common.clear')}</button>
     {#if selectedPositions.length > 0}
-      <button class="btn" onclick={handlePlay}>&#9654; Play</button>
+      <button class="btn" onclick={handlePlay}>&#9654; {t('common.play')}</button>
     {/if}
   </div>
 
   <p class="info-msg no-print">
-    Click on the fretboard to select where you press. One note per string. Unclicked strings are treated as open or muted.
+    {t('identifier.instruction')}
   </p>
 
   <div class:mobile-id-layout={needsVertical} class:scroll-area={!needsVertical}>
@@ -103,11 +104,11 @@
       <div class="results-section">
         {#if selectedPositions.length > 0}
           <p class="info-msg">
-            Selected notes: <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
+            {t('finder.selectedNotes')} <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
           </p>
 
           {#if candidates.exact.length > 0}
-            <h3 class="results-heading">Matches</h3>
+            <h3 class="results-heading">{t('identifier.matches')}</h3>
             <div class="candidate-grid">
               {#each candidates.exact as candidate}
                 <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
@@ -123,7 +124,7 @@
           {/if}
 
           {#if candidates.vague.length > 0}
-            <h3 class="results-heading">Related chords</h3>
+            <h3 class="results-heading">{t('identifier.relatedChords')}</h3>
             <div class="candidate-grid">
               {#each candidates.vague as candidate}
                 <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
@@ -139,7 +140,7 @@
           {/if}
 
           {#if candidates.exact.length === 0 && candidates.vague.length === 0 && selectedPositions.length >= 2}
-            <p class="info-msg" style="margin-top: 8px;">No chord match found for this combination.</p>
+            <p class="info-msg" style="margin-top: 8px;">{t('identifier.noMatch')}</p>
           {/if}
         {/if}
       </div>
@@ -147,11 +148,11 @@
       {#if selectedPositions.length > 0}
         <div class="results-section">
           <p class="info-msg">
-            Selected notes: <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
+            {t('finder.selectedNotes')} <strong>{selectedNoteNames.map(n => displayAccidental(n)).join(', ')}</strong>
           </p>
 
           {#if candidates.exact.length > 0}
-            <h3 class="results-heading">Matches</h3>
+            <h3 class="results-heading">{t('identifier.matches')}</h3>
             <div class="candidate-grid">
               {#each candidates.exact as candidate}
                 <button class="candidate-card" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
@@ -167,7 +168,7 @@
           {/if}
 
           {#if candidates.vague.length > 0}
-            <h3 class="results-heading">Related chords</h3>
+            <h3 class="results-heading">{t('identifier.relatedChords')}</h3>
             <div class="candidate-grid">
               {#each candidates.vague as candidate}
                 <button class="candidate-card vague" onclick={() => onChordSelect?.(candidate.name, candidate.frets)}>
@@ -183,7 +184,7 @@
           {/if}
 
           {#if candidates.exact.length === 0 && candidates.vague.length === 0 && selectedPositions.length >= 2}
-            <p class="info-msg" style="margin-top: 8px;">No chord match found for this combination.</p>
+            <p class="info-msg" style="margin-top: 8px;">{t('identifier.noMatch')}</p>
           {/if}
         </div>
       {/if}

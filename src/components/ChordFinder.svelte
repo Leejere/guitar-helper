@@ -14,6 +14,7 @@
   import { pool } from '../lib/pool.svelte';
   import { progression } from '../lib/progression.svelte';
   import { toast } from '../lib/toast.svelte';
+  import { t, tc, tMode, tCategory, tRelation, tTuning, tShapeLabel, tPosition, tTypeName, tFunctionName } from '../lib/i18n.svelte';
 
   // Fretboard layout constants (must match Fretboard.svelte non-compact mode)
   const FB_LEFT_PADDING = 75;
@@ -402,7 +403,7 @@
     const input = normalizeInput(symbol);
     const chord = getChord(input);
     if (!chord || chord.empty || chord.notes.length === 0) {
-      errorMsg = `Chord "${symbol}" not recognized.`;
+      errorMsg = t('finder.chordNotRecognized', symbol);
       return;
     }
 
@@ -421,7 +422,7 @@
     otherVoicings = others;
 
     if (voicings.length === 0) {
-      errorMsg = `No playable voicings found for "${displayAccidental(symbol)}" in ${selectedTuning.name} tuning.`;
+      errorMsg = t('finder.noVoicingsForTuning', displayAccidental(symbol), tTuning(selectedTuning.name));
     } else {
       // Auto-select the lowest fret position
       const groups = new Set(voicings.map(v => v.positionGroup));
@@ -513,17 +514,17 @@
   }
 
   function positionLabel(v: Voicing): string {
-    return v.positionGroup;
+    return tPosition(v.positionGroup);
   }
 
   function cagedLabel(v: Voicing): string {
-    if (!v.caged) return 'Other shape';
-    return v.caged.label;
+    if (!v.caged) return t('finder.otherShape');
+    return tShapeLabel(v.caged.label);
   }
 
   function filterNoteLabel(fp: { string: number; fret: number }): string {
     const note = Note.pitchClass(Note.transpose(selectedTuning.notes[fp.string], Interval.fromSemitones(fp.fret)));
-    return fp.fret === 0 ? `${displayAccidental(note)} open` : `${displayAccidental(note)} (fret ${fp.fret})`;
+    return fp.fret === 0 ? t('finder.noteOpen', displayAccidental(note)) : t('finder.noteFret', displayAccidental(note), fp.fret);
   }
 
   function handleFretboardNoteClick(stringIdx: number, fret: number) {
@@ -597,7 +598,8 @@
   function handleScaleModeClick(mode: string) {
     if (filterScaleRoot && filterScaleMode === mode) return;
     filterScaleMode = filterScaleMode === mode ? '' : mode;
-    if (filterScaleMode && filterScaleRoot) {
+    if (filterScaleMode) {
+      if (!filterScaleRoot) filterScaleRoot = 'C';
       clearNonScaleFilters();
     }
   }
@@ -624,7 +626,7 @@
       <div class="browse-header no-print">
         <div class="browse-filters">
         <div class="filter-row">
-          <label class="filter-label">Search</label>
+          <label class="filter-label">{t('finder.search')}</label>
           <div class="filter-options">
             <input
               id="chord-search"
@@ -632,14 +634,14 @@
               bind:value={searchText}
               onkeydown={handleBrowseKeydown}
               oninput={handleNonScaleFilterAction}
-              placeholder="Type chord name..."
+              placeholder={t('finder.typeChordName')}
               class="search-input"
             />
           </div>
         </div>
 
         <div class="filter-row">
-          <label class="filter-label">Root</label>
+          <label class="filter-label">{t('common.root')}</label>
           <div class="filter-options">
             {#each FILTER_ROOTS as r}
               <button
@@ -655,14 +657,14 @@
         </div>
 
         <div class="filter-row">
-          <label class="filter-label">Type</label>
+          <label class="filter-label">{t('common.type')}</label>
           <div class="filter-options">
             {#each ALL_CATEGORIES as cat}
               <button
                 class="filter-btn"
                 class:active={filterCategories.includes(cat)}
                 onclick={() => { handleNonScaleFilterAction(); filterCategories = toggleFilter(filterCategories, cat); }}
-              >{cat}</button>
+              >{tCategory(cat)}</button>
             {/each}
             {#if filterCategories.length > 0}
               <button class="filter-row-clear" onclick={() => filterCategories = []}>&times;</button>
@@ -673,10 +675,10 @@
         <div class="filter-divider"></div>
 
         <div class="filter-row">
-          <label class="filter-label">Scale</label>
+          <label class="filter-label">{t('finder.scale')}</label>
           <div class="filter-options">
             <div class="filter-options-sub">
-              <span class="filter-sublabel">Root</span>
+              <span class="filter-sublabel">{t('finder.scaleRoot')}</span>
               {#each FILTER_ROOTS as r}
                 <button
                   class="filter-btn"
@@ -686,19 +688,19 @@
               {/each}
             </div>
             <div class="filter-options-sub">
-              <span class="filter-sublabel">Mode</span>
+              <span class="filter-sublabel">{t('finder.mode')}</span>
               {#each SCALE_MODES as mode}
                 <button
                   class="filter-btn"
                   class:active={filterScaleMode === mode}
                   onclick={() => handleScaleModeClick(mode)}
-                >{mode.charAt(0).toUpperCase() + mode.slice(1)}</button>
+                >{tMode(mode)}</button>
               {/each}
             </div>
             {#if filterScale}
               <div class="filter-options-sub">
                 <label class="extensions-toggle">
-                  <span class="toggle-label">Include extensions</span>
+                  <span class="toggle-label">{t('finder.includeExtensions')}</span>
                   <span class="toggle-switch" class:on={includeExtensions} onclick={() => includeExtensions = !includeExtensions} role="switch" aria-checked={includeExtensions} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); includeExtensions = !includeExtensions; } }}>
                     <span class="toggle-knob"></span>
                   </span>
@@ -711,7 +713,7 @@
         <div class="filter-divider"></div>
 
         <div class="filter-row">
-          <label class="filter-label">Slash</label>
+          <label class="filter-label">{t('finder.slash')}</label>
           <div class="filter-options">
             {#each FILTER_ROOTS as r}
               <button
@@ -726,24 +728,24 @@
           </div>
         </div>
 
-        <button class="btn btn-secondary btn-clear-all" class:invisible={!hasAnyBrowseFilter} onclick={clearBrowseFilters}>Clear All Filters</button>
+        <button class="btn btn-secondary btn-clear-all" class:invisible={!hasAnyBrowseFilter} onclick={clearBrowseFilters}>{t('finder.clearAll')}</button>
       </div>
     </div>
 
-    <div class="chord-count">{filteredChordList.length} chord{filteredChordList.length !== 1 ? 's' : ''}</div>
+    <div class="chord-count">{tc('count.chord', filteredChordList.length)}</div>
 
     {#if filterScale && scaleDegreeGroups.length > 0}
       <div class="degree-grouped-grid">
         {#each scaleDegreeGroups as group}
           <div class="degree-section">
-            <div class="degree-label">{group.romanLabel}<span class="degree-function"> — {group.functionName}</span></div>
+            <div class="degree-label">{group.romanLabel}<span class="degree-function"> — {tFunctionName(group.functionName)}</span></div>
             <div class="chord-grid">
               {#each group.chords as entry}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="chord-card" onclick={() => selectChord(entry.symbol)}>
                   <span class="chord-card-name">{displayAccidental(entry.symbol)}</span>
-                  <span class="chord-card-type">{entry.typeName}</span>
+                  <span class="chord-card-type">{tTypeName(entry.typeName)}</span>
                 </div>
               {/each}
             </div>
@@ -757,7 +759,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="chord-card" onclick={() => selectChord(entry.symbol)}>
             <span class="chord-card-name">{displayAccidental(entry.symbol)}</span>
-            <span class="chord-card-type">{entry.typeName}</span>
+            <span class="chord-card-type">{tTypeName(entry.typeName)}</span>
             {#if entry.keys.length > 0}
               <span class="chord-card-keys">{entry.keys.slice(0, 3).map(k => displayAccidental(k)).join(', ')}{entry.keys.length > 3 ? ', ...' : ''}</span>
             {/if}
@@ -767,17 +769,17 @@
     {/if}
 
     {#if filteredChordList.length === 0}
-      <p class="no-match-msg">No chords match the current filters.</p>
+      <p class="no-match-msg">{t('finder.noMatch')}</p>
     {/if}
     </div>
 
   {:else}
     <!-- ============ VOICINGS PHASE ============ -->
     <div class="controls no-print">
-      <button class="btn btn-secondary btn-back" onclick={goBack}>&larr; Back to chords</button>
+      <button class="btn btn-secondary btn-back" onclick={goBack}>{t('finder.backToChords')}</button>
 
       <div class="control-group quick-search-group">
-        <label for="quick-chord-search">Switch chord</label>
+        <label for="quick-chord-search">{t('finder.switchChord')}</label>
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="quick-search-wrapper" onkeydown={handleQuickSearchKeydown}>
           <input
@@ -786,7 +788,7 @@
             bind:value={quickSearchText}
             onfocus={() => { quickSearchFocused = true; }}
             onblur={() => { setTimeout(() => { quickSearchFocused = false; }, 150); }}
-            placeholder="Type chord..."
+            placeholder={t('finder.typeChord')}
             class="search-input"
             autocomplete="off"
           />
@@ -797,7 +799,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="quick-search-item" onmousedown={() => quickSelectChord(entry.symbol)}>
                   <span class="quick-search-name">{displayAccidental(entry.symbol)}</span>
-                  <span class="quick-search-type">{entry.typeName}</span>
+                  <span class="quick-search-type">{tTypeName(entry.typeName)}</span>
                 </div>
               {/each}
             </div>
@@ -806,10 +808,10 @@
       </div>
 
       <div class="control-group">
-        <label for="tuning-chord2">Tuning</label>
+        <label for="tuning-chord2">{t('common.tuning')}</label>
         <select id="tuning-chord2" value={selectedTuning.name} onchange={handleTuningChange}>
-          {#each ALL_TUNINGS as t}
-            <option value={t.name}>{t.name}</option>
+          {#each ALL_TUNINGS as tn}
+            <option value={tn.name}>{tTuning(tn.name)}</option>
           {/each}
         </select>
       </div>
@@ -826,13 +828,13 @@
           {#if chordNotes.length > 0}
             <span class="chord-notes">({#if showIntervals && chordRoot}{chordNotes.map(n => getIntervalLabel(chordRoot, n)).join(' · ')}{:else}{chordNotes.map(n => displayAccidental(n)).join(' · ')}{/if})</span>
           {/if}
-          <span class="chord-info-type">{activeChordEntry.typeName}</span>
-          <span class="chord-info-category">{activeChordEntry.category}</span>
+          <span class="chord-info-type">{tTypeName(activeChordEntry.typeName)}</span>
+          <span class="chord-info-category">{tCategory(activeChordEntry.category)}</span>
           {#if activeChordEntry.keys.length > 0}
-            <span class="chord-info-keys">Keys: {activeChordEntry.keys.map(k => displayAccidental(k)).join(', ')}</span>
+            <span class="chord-info-keys">{t('common.keys')}: {activeChordEntry.keys.map(k => displayAccidental(k)).join(', ')}</span>
           {/if}
           <label class="intervals-toggle">
-            <span class="toggle-label">Intervals</span>
+            <span class="toggle-label">{t('common.intervals')}</span>
             <span class="toggle-switch" class:on={showIntervals} onclick={() => showIntervals = !showIntervals} role="switch" aria-checked={showIntervals} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showIntervals = !showIntervals; } }}>
               <span class="toggle-knob"></span>
             </span>
@@ -841,13 +843,13 @@
 
         {#if relatedChords.length > 0}
           <div class="related-chords-bar">
-            <span class="related-label">Related:</span>
+            <span class="related-label">{t('finder.related')}</span>
             {#each relatedInline as rc}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <span class="related-chip" onclick={() => selectChord(rc.symbol)}>
                 <span class="related-chip-name">{displayAccidental(rc.symbol)}</span>
-                <span class="related-chip-relation">{rc.relation}</span>
+                <span class="related-chip-relation">{tRelation(rc.relation)}</span>
               </span>
             {/each}
             {#if relatedOverflow.length > 0}
@@ -864,7 +866,7 @@
                       <!-- svelte-ignore a11y_no_static_element_interactions -->
                       <div class="related-more-item" onclick={() => { relatedMoreOpen = false; selectChord(rc.symbol); }}>
                         <span class="related-chip-name">{displayAccidental(rc.symbol)}</span>
-                        <span class="related-chip-relation">{rc.relation}</span>
+                        <span class="related-chip-relation">{tRelation(rc.relation)}</span>
                       </div>
                     {/each}
                   </div>
@@ -877,7 +879,7 @@
 
       <div class="voicings-scroll-area" class:tablet={isTablet}>
       {#snippet fretSelectorBtnContent(item: FretSelectorItem)}
-        <span class="fret-selector-label">{item.positionGroup === 'Open position' ? 'Open' : `Fret ${item.fretNumber}`}</span>
+        <span class="fret-selector-label">{item.positionGroup === 'Open position' ? t('common.open') : t('common.fretN', item.fretNumber)}</span>
         <MiniChordDiagram voicing={item.bestVoicing} tuning={selectedTuning} />
         <span class="fret-selector-tags">
           {#each item.labels.slice(0, 2) as lbl}
@@ -887,13 +889,13 @@
             <span class="fret-selector-tag">+{item.labels.length - 2}</span>
           {/if}
         </span>
-        <span class="fret-selector-count">{item.count} voicing{item.count !== 1 ? 's' : ''}</span>
+        <span class="fret-selector-count">{tc('count.chord', item.count)}</span>
       {/snippet}
 
       {#snippet mobileFretSelectorBtnContent(item: FretSelectorItem)}
         <MiniChordDiagram voicing={item.bestVoicing} tuning={selectedTuning} />
         <span class="mobile-selector-text">
-          <span class="fret-selector-label">{item.positionGroup === 'Open position' ? 'Open' : `Fret ${item.fretNumber}`}</span>
+          <span class="fret-selector-label">{item.positionGroup === 'Open position' ? t('common.open') : t('common.fretN', item.fretNumber)}</span>
           <span class="fret-selector-tags">
             {#each item.labels.slice(0, 2) as lbl}
               <span class="fret-selector-tag">{lbl}</span>
@@ -902,7 +904,7 @@
               <span class="fret-selector-tag">+{item.labels.length - 2}</span>
             {/if}
           </span>
-          <span class="fret-selector-count">{item.count} voicing{item.count !== 1 ? 's' : ''}</span>
+          <span class="fret-selector-count">{tc('count.chord', item.count)}</span>
         </span>
       {/snippet}
 
@@ -941,9 +943,9 @@
                   onclick={() => { selectedFretFilter = 'all'; if (!isTablet) mobileView = 'detail'; }}
                 >
                   <span class="mobile-selector-text">
-                    <span class="fret-selector-label">All</span>
-                    <span class="fret-selector-all-desc">Sorted by playability</span>
-                    <span class="fret-selector-count">{voicings.length} voicing{voicings.length !== 1 ? 's' : ''}</span>
+                    <span class="fret-selector-label">{t('finder.all')}</span>
+                    <span class="fret-selector-all-desc">{t('finder.sortedByPlayability')}</span>
+                    <span class="fret-selector-count">{tc('count.chord', voicings.length)}</span>
                   </span>
                 </button>
               </div>
@@ -986,9 +988,9 @@
                     class:active={selectedFretFilter === 'all'}
                     onclick={() => { if (selectedFretFilter !== 'all') selectedFretFilter = 'all'; }}
                   >
-                    <span class="fret-selector-label">All</span>
-                    <span class="fret-selector-all-desc">Sorted by playability</span>
-                    <span class="fret-selector-count">{voicings.length} voicing{voicings.length !== 1 ? 's' : ''}</span>
+                    <span class="fret-selector-label">{t('finder.all')}</span>
+                    <span class="fret-selector-all-desc">{t('finder.sortedByPlayability')}</span>
+                    <span class="fret-selector-count">{tc('count.chord', voicings.length)}</span>
                   </button>
                 </div>
               </div>
@@ -996,7 +998,7 @@
           </div>
 
           {#if selectedFretFilter}
-            <p class="fretboard-hint no-print">Click chord tones on the fretboard to filter voicings</p>
+            <p class="fretboard-hint no-print">{t('finder.clickToFilter')}</p>
           {/if}
 
           {#if filterPositions.length > 0}
@@ -1007,7 +1009,7 @@
                   <button class="filter-tag-x" onclick={() => { filterPositions = filterPositions.filter((_, j) => j !== i); }}>&times;</button>
                 </span>
               {/each}
-              <button class="btn-clear-filter" onclick={clearFretboardFilters}>Clear all</button>
+              <button class="btn-clear-filter" onclick={clearFretboardFilters}>{t('finder.clearAllFilter')}</button>
             </div>
           {/if}
         {/if}
@@ -1015,7 +1017,7 @@
 
       <!-- Detail section: on phone only in detail view; on tablet/desktop when fret selected -->
       {#if needsVertical && !isTablet && mobileView === 'detail'}
-        <button class="mobile-back-btn" onclick={() => mobileView = 'fretboard'}>&larr; Back to fretboard</button>
+        <button class="mobile-back-btn" onclick={() => mobileView = 'fretboard'}>{t('finder.backToFretboard')}</button>
       {/if}
 
       {#if !(needsVertical && !isTablet && mobileView === 'fretboard') && selectedFretFilter}
@@ -1025,8 +1027,8 @@
           {#if availableCaged.length > 0}
             <div class="voicing-toolbar no-print">
               <ButtonFilter
-                label="Shape"
-                options={availableCaged.map(l => ({ value: l, label: l === 'Other' ? 'Other shape' : l }))}
+                label={t('common.shape')}
+                options={availableCaged.map(l => ({ value: l, label: l === 'Other' ? t('finder.otherShape') : l }))}
                 selected={filterCaged}
                 onchange={(v) => filterCaged = v}
               />
@@ -1036,13 +1038,13 @@
           <div class="section-title">
             <div class="section-title-row">
               <span>
-                {filteredVoicings.length} voicing{filteredVoicings.length !== 1 ? 's' : ''} filtered
+                {tc('count.voicingFiltered', filteredVoicings.length)}
               </span>
             </div>
           </div>
 
           {#if filteredVoicings.length === 0 && (filterPositions.length > 0 || selectedFretFilter || filterCaged.length > 0)}
-            <div class="no-match-msg">No voicings match the current filters.</div>
+            <div class="no-match-msg">{t('finder.noVoicingsMatch')}</div>
           {/if}
           <div class="voicing-items">
             {#each displayGroups as group}
@@ -1077,30 +1079,30 @@
                         <span class="tag tag-caged">{v.caged.label}</span>
                       {/if}
                     {:else}
-                      <span class="tag tag-other">Other shape</span>
+                      <span class="tag tag-other">{t('finder.otherShape')}</span>
                     {/if}
                     {#if selectedFretFilter === 'all'}
                       <span class="tag tag-pos">{positionLabel(v)}</span>
                     {/if}
                     {#if v.barres.length > 0}
-                      <span class="tag tag-barre">Barre fret {v.barres[0].fret}</span>
+                      <span class="tag tag-barre">{t('finder.barreFretN', v.barres[0].fret)}</span>
                     {/if}
                   </span>
-                  <span class="voicing-score" title="Playability ranking">Ranked {v.rank}/{voicings.length}</span>
+                  <span class="voicing-score" title={t('finder.playabilityRanking')}>{t('finder.rankedOf', v.rank, voicings.length)}</span>
                   <span class="voicing-actions">
                     <button
                       class="voicing-action-btn"
                       class:in-pool={inPool}
                       class:disabled={inPool && usedInProg}
-                      title={inPool ? (usedInProg ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+                      title={inPool ? (usedInProg ? t('finder.usedInProgression') : t('finder.removeFromPool')) : t('finder.addToPool')}
                       disabled={inPool && usedInProg}
-                      onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show('Removed from pool'); } } else { pool.add(v, selectedTuning, activeChordSymbol); toast.show('Added to pool'); } }}
-                    >{inPool ? '− Delete from pool' : '+ Add to pool'}</button>
+                      onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show(t('finder.removedFromPool')); } } else { pool.add(v, selectedTuning, activeChordSymbol); toast.show(t('finder.addedToPool')); } }}
+                    >{inPool ? t('finder.deleteFromPool') : t('finder.addToPoolBtn')}</button>
                     <button
                       class="voicing-action-btn"
-                      title="Add to progression"
-                      onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(v, selectedTuning, activeChordSymbol); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show('Placed into progression cell'); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show('Added to progression'); } }}
-                    >+ Add to progression</button>
+                      title={t('finder.addToProgression')}
+                      onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(v, selectedTuning, activeChordSymbol); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show(t('finder.placedIntoCell')); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show(t('finder.addedToProgression')); } }}
+                    >{t('finder.addToProgressionBtn')}</button>
                   </span>
                 </div>
               {/each}
@@ -1111,7 +1113,7 @@
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div class="position-group-header other-possibilities-header" onclick={() => toggleGroup('__others__')}>
                 <span class="group-chevron" class:collapsed={collapsedGroups.has('__others__')}>&#9662;</span>
-                Other possibilities <span class="group-count">({filteredOtherVoicings.length})</span>
+                {t('finder.otherPossibilities')} <span class="group-count">({filteredOtherVoicings.length})</span>
               </div>
               {#if !collapsedGroups.has('__others__')}
               {#each filteredOtherVoicings as v}
@@ -1137,30 +1139,30 @@
                         <span class="tag tag-caged">{v.caged.label}</span>
                       {/if}
                     {:else}
-                      <span class="tag tag-other">Other shape</span>
+                      <span class="tag tag-other">{t('finder.otherShape')}</span>
                     {/if}
                     {#if selectedFretFilter === 'all'}
                       <span class="tag tag-pos">{positionLabel(v)}</span>
                     {/if}
                     {#if v.barres.length > 0}
-                      <span class="tag tag-barre">Barre fret {v.barres[0].fret}</span>
+                      <span class="tag tag-barre">{t('finder.barreFretN', v.barres[0].fret)}</span>
                     {/if}
                   </span>
-                  <span class="voicing-score" title="Playability ranking">Ranked {v.rank}/{otherVoicings.length}</span>
+                  <span class="voicing-score" title={t('finder.playabilityRanking')}>{t('finder.rankedOf', v.rank, otherVoicings.length)}</span>
                   <span class="voicing-actions">
                     <button
                       class="voicing-action-btn"
                       class:in-pool={inPool}
                       class:disabled={inPool && usedInProg}
-                      title={inPool ? (usedInProg ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+                      title={inPool ? (usedInProg ? t('finder.usedInProgression') : t('finder.removeFromPool')) : t('finder.addToPool')}
                       disabled={inPool && usedInProg}
-                      onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show('Removed from pool'); } } else { pool.add(v, selectedTuning, activeChordSymbol); toast.show('Added to pool'); } }}
-                    >{inPool ? '− Delete from pool' : '+ Add to pool'}</button>
+                      onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show(t('finder.removedFromPool')); } } else { pool.add(v, selectedTuning, activeChordSymbol); toast.show(t('finder.addedToPool')); } }}
+                    >{inPool ? t('finder.deleteFromPool') : t('finder.addToPoolBtn')}</button>
                     <button
                       class="voicing-action-btn"
-                      title="Add to progression"
-                      onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(v, selectedTuning, activeChordSymbol); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show('Placed into progression cell'); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show('Added to progression'); } }}
-                    >+ Add to progression</button>
+                      title={t('finder.addToProgression')}
+                      onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(v, selectedTuning, activeChordSymbol); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show(t('finder.placedIntoCell')); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show(t('finder.addedToProgression')); } }}
+                    >{t('finder.addToProgressionBtn')}</button>
                   </span>
                 </div>
               {/each}
@@ -1173,7 +1175,7 @@
           {#if selectedVoicing}
             <div class="section-title">
               {fretLabel(selectedVoicing)}
-              <span class="detail-score" title="Playability ranking">Ranked {selectedVoicing.rank}/{selectedIsOther ? otherVoicings.length : voicings.length}</span>
+              <span class="detail-score" title={t('finder.playabilityRanking')}>{t('finder.rankedOf', selectedVoicing.rank, selectedIsOther ? otherVoicings.length : voicings.length)}</span>
             </div>
             <div class="detail-tags">
               <span class="tag tag-pos">{positionLabel(selectedVoicing)}</span>
@@ -1186,10 +1188,10 @@
                   <span class="tag tag-caged">{cagedLabel(selectedVoicing)}</span>
                 {/if}
               {:else}
-                <span class="tag tag-other">Other shape</span>
+                <span class="tag tag-other">{t('finder.otherShape')}</span>
               {/if}
               {#if selectedVoicing.barres.length > 0}
-                <span class="tag tag-barre">Barre fret {selectedVoicing.barres[0].fret}</span>
+                <span class="tag tag-barre">{t('finder.barreFretN', selectedVoicing.barres[0].fret)}</span>
               {/if}
             </div>
             <ChordDiagram voicing={selectedVoicing} tuning={selectedTuning} chordName={activeChordSymbol} initialShowIntervals={showIntervals} />

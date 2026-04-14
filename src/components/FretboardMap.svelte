@@ -5,6 +5,7 @@
   import { exportFretboardPdf } from '../lib/pdf';
   import { responsive } from '../lib/responsive.svelte';
   import { fretboardMapState } from '../lib/fretboard-map-state.svelte';
+  import { t, tTuning } from '../lib/i18n.svelte';
 
   // Fretboard SVG width (must match Fretboard.svelte defaults: leftPadding=50, fretSpacing=75, fretCount=15, rightPadding=20)
   const FB_SVG_WIDTH = 50 + 16 * 75 + 20; // 1270
@@ -21,8 +22,8 @@
 
   async function handleExportPdf() {
     const title = mode === 'intervals'
-      ? `Fretboard — ${selectedTuning.name} Tuning — Intervals from ${displayAccidental(rootNote)}`
-      : `Fretboard — ${selectedTuning.name} Tuning — All Notes`;
+      ? t('fretboard.pdfTitle.intervals', tTuning(selectedTuning.name), displayAccidental(rootNote))
+      : t('fretboard.pdfTitle.notes', tTuning(selectedTuning.name));
     await exportFretboardPdf(
       { tuning: selectedTuning.notes, fretCount: 14, mode, rootNote },
       'fretboard.pdf',
@@ -34,24 +35,24 @@
 <div class="page-root">
   <div class="print-title">
     {#if mode === 'intervals'}
-      Fretboard Map - {selectedTuning.name} Tuning - Intervals from {displayAccidental(rootNote)}
+      {t('fretboard.printTitle.intervals', tTuning(selectedTuning.name), displayAccidental(rootNote))}
     {:else}
-      Fretboard Map - {selectedTuning.name} Tuning - All Notes
+      {t('fretboard.printTitle.notes', tTuning(selectedTuning.name))}
     {/if}
   </div>
 
   <div class="controls no-print">
     <div class="control-group">
-      <label for="tuning-select">Tuning</label>
+      <label for="tuning-select">{t('common.tuning')}</label>
       <select id="tuning-select" value={selectedTuning.name} onchange={handleTuningChange}>
-        {#each ALL_TUNINGS as t}
-          <option value={t.name}>{t.name}</option>
+        {#each ALL_TUNINGS as tn}
+          <option value={tn.name}>{tTuning(tn.name)}</option>
         {/each}
       </select>
     </div>
 
     <label class="intervals-toggle">
-      <span class="toggle-label">Intervals</span>
+      <span class="toggle-label">{t('common.intervals')}</span>
       <span class="toggle-switch" class:on={mode === 'intervals'} onclick={() => fretboardMapState.setMode(mode === 'intervals' ? 'notes' : 'intervals')} role="switch" aria-checked={mode === 'intervals'} tabindex="0" onkeydown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fretboardMapState.setMode(mode === 'intervals' ? 'notes' : 'intervals'); } }}>
         <span class="toggle-knob"></span>
       </span>
@@ -59,7 +60,7 @@
 
     {#if mode === 'intervals'}
       <div class="control-group">
-        <label for="root-select">Root</label>
+        <label for="root-select">{t('common.root')}</label>
         <select id="root-select" value={rootNote} onchange={(e) => fretboardMapState.setRootNote((e.target as HTMLSelectElement).value)}>
           {#each ALL_ROOTS as r}
             <option value={r}>{displayAccidental(r)}</option>
@@ -70,7 +71,7 @@
 
     <div class="control-group" style="margin-left: auto;">
       <button class="btn btn-small" onclick={handleExportPdf}>
-        Download PDF
+        {t('fretboard.downloadPdf')}
       </button>
     </div>
   </div>

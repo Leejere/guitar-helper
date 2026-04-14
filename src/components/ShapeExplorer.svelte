@@ -18,6 +18,7 @@
   import { shapeExplorerState as ses } from '../lib/shape-explorer-state.svelte';
   import { pool } from '../lib/pool.svelte';
   import { progression } from '../lib/progression.svelte';
+  import { t, tc, tShapeLabel, tShapeName, tPosition } from '../lib/i18n.svelte';
   import { toast } from '../lib/toast.svelte';
 
   // Fretboard layout constants (must match Fretboard.svelte defaults)
@@ -236,8 +237,8 @@
   <!-- Filters -->
   <div class="filter-bar">
     <ButtonFilter
-      label="Shape"
-      options={shapeGroups.map(g => ({ value: g.shape, label: `${g.shape} shape` }))}
+      label={t('common.shape')}
+      options={shapeGroups.map(g => ({ value: g.shape, label: tShapeLabel(g.shape + ' shape') }))}
       selected={filterShape ? [filterShape] : []}
       multiSelect={false}
       onchange={handleShapeChange}
@@ -246,7 +247,7 @@
   {#if filterShape && variantOptions.length > 1}
     <div class="filter-bar">
       <ButtonFilter
-        label="Type"
+        label={t('common.type')}
         options={variantOptions.map(o => ({ value: o.displaySuffix, label: o.label }))}
         selected={filterVariants}
         onchange={handleVariantChange}
@@ -257,7 +258,7 @@
   {#if filterShape}
     <div class="explorer-scroll-area" class:tablet={isTablet}>
     {#snippet fretSelectorBtnContent(item: FretSelectorItem)}
-      <span class="fret-selector-label">{item.position === 0 ? 'Open' : `Fret ${item.position}`}</span>
+      <span class="fret-selector-label">{item.position === 0 ? t('common.open') : t('common.fretN', item.position)}</span>
       <span class="fret-selector-main-name">{item.chordNames[0]}</span>
       <MiniChordDiagram voicing={item.bestVoicing} {tuning} />
       {#if item.chordNames.length > 1}
@@ -270,13 +271,13 @@
           {/if}
         </span>
       {/if}
-      <span class="fret-selector-count">{item.count} chord voicing{item.count !== 1 ? 's' : ''}</span>
+      <span class="fret-selector-count">{tc('count.chordVoicing', item.count)}</span>
     {/snippet}
 
     {#snippet mobileFretSelectorBtnContent(item: FretSelectorItem)}
       <MiniChordDiagram voicing={item.bestVoicing} {tuning} />
       <span class="mobile-selector-text">
-        <span class="fret-selector-label">{item.position === 0 ? 'Open' : `Fret ${item.position}`}</span>
+        <span class="fret-selector-label">{item.position === 0 ? t('common.open') : t('common.fretN', item.position)}</span>
         <span class="fret-selector-main-name">{item.chordNames[0]}</span>
       </span>
       <span class="mobile-selector-text">
@@ -290,7 +291,7 @@
             {/if}
           </span>
         {/if}
-        <span class="fret-selector-count">{item.count} chord voicing{item.count !== 1 ? 's' : ''}</span>
+        <span class="fret-selector-count">{tc('count.chordVoicing', item.count)}</span>
       </span>
     {/snippet}
 
@@ -363,18 +364,18 @@
     {#if !needsVertical}
       <p class="fretboard-hint">
         {#if selectedPosition === null}
-          Select a fret position above to see voicings.
+          {t('shapes.selectFret')}
         {:else if selectedResult}
-          Showing <strong>{displayAccidental(selectedResult.chordName)}</strong> — {selectedResult.shapeLabel}
+          {t('shapes.showing')} <strong>{displayAccidental(selectedResult.chordName)}</strong> — {tShapeLabel(selectedResult.shapeLabel)}
         {:else if shapeResults.length > 0}
-          {shapeResults.length} chord voicing{shapeResults.length !== 1 ? 's' : ''} at {selectedPosition === 0 ? 'open position' : `fret ${selectedPosition}`}. Select one below.
+          {t('shapes.voicingsAt', tc('count.chordVoicing', shapeResults.length), selectedPosition === 0 ? t('shapes.openPosition') : t('common.fretN', selectedPosition))}
         {/if}
       </p>
     {/if}
 
     <!-- Mobile back button -->
     {#if needsVertical && !isTablet && mobileView === 'detail'}
-      <button class="mobile-back-btn" onclick={() => mobileView = 'fretboard'}>&larr; Back to fretboard</button>
+      <button class="mobile-back-btn" onclick={() => mobileView = 'fretboard'}>{t('shapes.backToFretboard')}</button>
     {/if}
 
     <!-- Detail section: always on desktop/tablet, only in detail view on phone -->
@@ -383,11 +384,10 @@
         <div class="voicing-list">
           <div class="section-title">
             <span>
-              {shapeResults.length} chord voicing{shapeResults.length !== 1 ? 's' : ''} for <strong>{filterShape} shape</strong>
+              {t('shapes.voicingsFor', selectedPosition === 0 ? t('shapes.openPosition') : t('common.fretN', selectedPosition ?? 0), tShapeName(filterShape), tc('count.chordVoicing', shapeResults.length))}
               {#if filterVariants.length > 0}
                 ({filterVariants.map(v => variantOptions.find(o => o.displaySuffix === v)?.label ?? '').join(', ')})
               {/if}
-              at {selectedPosition === 0 ? 'open position' : `fret ${selectedPosition}`}
             </span>
           </div>
           <div class="voicing-items">
@@ -418,9 +418,9 @@
                 </span>
                 <span class="voicing-frets">{fretLabel(result.voicing)}</span>
                 <span class="voicing-tags">
-                  <span class="tag tag-caged">{result.shapeLabel}</span>
+                  <span class="tag tag-caged">{tShapeLabel(result.shapeLabel)}</span>
                   {#if result.voicing.barres.length > 0}
-                    <span class="tag tag-barre">Barre fret {result.voicing.barres[0].fret}</span>
+                    <span class="tag tag-barre">{t('finder.barreFretN', result.voicing.barres[0].fret)}</span>
                   {/if}
                 </span>
                 <span class="voicing-actions">
@@ -428,15 +428,15 @@
                     class="voicing-action-btn"
                     class:in-pool={inPool}
                     class:disabled={inPool && usedInProg}
-                    title={inPool ? (usedInProg ? 'Used in progression' : 'Remove from pool') : 'Add to pool'}
+                    title={inPool ? (usedInProg ? t('finder.usedInProgression') : t('finder.removeFromPool')) : t('finder.addToPool')}
                     disabled={inPool && usedInProg}
-                    onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show('Removed from pool'); } } else { pool.add(result.voicing, tuning, result.chordName); toast.show('Added to pool'); } }}
-                  >{inPool ? '− Delete from pool' : '+ Add to pool'}</button>
+                    onclick={(e) => { e.stopPropagation(); if (inPool) { if (!usedInProg) { pool.remove(pk); toast.show(t('finder.removedFromPool')); } } else { pool.add(result.voicing, tuning, result.chordName); toast.show(t('finder.addedToPool')); } }}
+                  >{inPool ? t('finder.deleteFromPool') : t('finder.addToPoolBtn')}</button>
                   <button
                     class="voicing-action-btn"
-                    title="Add to progression"
-                    onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(result.voicing, tuning, result.chordName); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show('Placed into progression cell'); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show('Added to progression'); } }}
-                  >+ Add to progression</button>
+                    title={t('finder.addToProgression')}
+                    onclick={(e) => { e.stopPropagation(); if (!inPool) pool.add(result.voicing, tuning, result.chordName); const pending = progression.pendingCellIdx; if (pending !== null && pending >= 0 && pending < progression.cells.length) { progression.cells[pending] = { ...progression.cells[pending], poolKey: pk }; progression.persist(); progression.pendingCellIdx = null; toast.show(t('finder.placedIntoCell')); setTimeout(() => { progression.pendingNav = 'progression'; }, 1000); } else { progression.pushFromPool(pk); toast.show(t('finder.addedToProgression')); } }}
+                  >{t('finder.addToProgressionBtn')}</button>
                 </span>
               </div>
             {/each}
@@ -449,15 +449,15 @@
               {displayAccidental(selectedResult.chordName)}
             </div>
             <div class="detail-tags">
-              <span class="tag tag-pos">{selectedResult.voicing.positionGroup}</span>
-              <span class="tag tag-caged">{selectedResult.shapeLabel}</span>
+              <span class="tag tag-pos">{tPosition(selectedResult.voicing.positionGroup)}</span>
+              <span class="tag tag-caged">{tShapeLabel(selectedResult.shapeLabel)}</span>
               {#if selectedResult.voicing.barres.length > 0}
-                <span class="tag tag-barre">Barre fret {selectedResult.voicing.barres[0].fret}</span>
+                <span class="tag tag-barre">{t('finder.barreFretN', selectedResult.voicing.barres[0].fret)}</span>
               {/if}
             </div>
             <ChordDiagram voicing={selectedResult.voicing} {tuning} chordName={selectedResult.chordName} />
             <div class="detail-notes">
-              Notes: {selectedResult.voicing.pitchClasses.map(n => displayAccidental(n)).join(' ')}
+              {t('common.notes')}: {selectedResult.voicing.pitchClasses.map(n => displayAccidental(n)).join(' ')}
             </div>
           {/if}
         </div>
@@ -466,7 +466,7 @@
     </div>
   {:else}
     <div class="empty-state">
-      <p>Select a shape family above to start exploring voicings.</p>
+      <p>{t('shapes.emptyState')}</p>
     </div>
   {/if}
 </div>

@@ -10,6 +10,7 @@
   import html2canvas from 'html2canvas';
   import MiniChordDiagram from './MiniChordDiagram.svelte';
   import ChordDiagram from './ChordDiagram.svelte';
+  import { t, tTypeName } from '../lib/i18n.svelte';
 
   interface Props {
     onNavigateToFinder?: () => void;
@@ -841,13 +842,13 @@
     <!-- Empty state -->
     <div class="empty-state">
       <div class="empty-icon">🎸</div>
-      <h2>Quick add chords</h2>
-      <p>Type a chord name to add its best voicing to the pool, or browse chords in other modules.</p>
+      <h2>{t('prog.quickAddChords')}</h2>
+      <p>{t('prog.quickAddDesc')}</p>
       <div class="quick-search-wrapper quick-search-center">
         <input
           class="quick-search-input"
           type="text"
-          placeholder="e.g. Am7, Cmaj7, G…"
+          placeholder={t('prog.quickAddPlaceholder')}
           value={quickSearch}
           oninput={(e) => updateQuickResults((e.target as HTMLInputElement).value)}
           onfocus={() => { if (quickResults.length > 0) quickDropdownOpen = true; }}
@@ -866,21 +867,21 @@
                 <div class="quick-item-actions">
                   <button
                     class="quick-action-btn add"
-                    title="Add to pool"
+                    title={t('diagram.addToPool')}
                     disabled={quickAddingSymbol === entry.symbol}
                     onclick={() => handleQuickAdd(entry)}
-                  >+ Pool</button>
+                  >{t('prog.pool')}</button>
                   <button
                     class="quick-action-btn prog"
-                    title="Add to progression"
+                    title={t('diagram.addToProgression')}
                     disabled={quickAddingSymbol === entry.symbol}
                     onclick={() => handleQuickAddToProgression(entry)}
-                  >+ Progression</button>
+                  >{t('prog.progression')}</button>
                   <button
                     class="quick-action-btn go"
-                    title="Browse voicings"
+                    title={t('prog.browseVoicings')}
                     onclick={() => handleQuickNavigate(entry)}
-                  >Browse</button>
+                  >{t('prog.browse')}</button>
                 </div>
               </div>
             {/each}
@@ -889,13 +890,13 @@
       </div>
       <div class="empty-actions">
         {#if onNavigateToFinder}
-          <button class="btn btn-secondary" onclick={onNavigateToFinder}>Chord Finder</button>
+          <button class="btn btn-secondary" onclick={onNavigateToFinder}>{t('prog.chordFinder')}</button>
         {/if}
         {#if onNavigateToIdentifier}
-          <button class="btn btn-secondary" onclick={onNavigateToIdentifier}>Chord Identifier</button>
+          <button class="btn btn-secondary" onclick={onNavigateToIdentifier}>{t('prog.chordIdentifier')}</button>
         {/if}
         {#if onNavigateToShapes}
-          <button class="btn btn-secondary" onclick={onNavigateToShapes}>Shape Explorer</button>
+          <button class="btn btn-secondary" onclick={onNavigateToShapes}>{t('prog.shapeExplorer')}</button>
         {/if}
       </div>
     </div>
@@ -909,16 +910,16 @@
         class:drag-over={dragOverZone === 'pool'}
       >
         <div class="pool-header">
-          <span class="pool-title">Pool</span>
+          <span class="pool-title">{t('prog.poolTitle')}</span>
           <span class="pool-count">{pool.entries.length}</span>
           {#if pool.entries.length > 0}
             <button
               class="btn btn-small {clearPoolConfirm ? 'btn-danger' : 'btn-secondary'} pool-clear-btn"
               onclick={handleClearPool}
-            >{clearPoolConfirm ? 'Confirm clear?' : 'Clear pool'}</button>
+            >{clearPoolConfirm ? t('prog.confirmClear') : t('prog.clearPool')}</button>
           {/if}
           {#if isMobile}
-            <button class="pool-close-btn" onclick={() => poolCollapsed = true} aria-label="Close pool">
+            <button class="pool-close-btn" onclick={() => poolCollapsed = true} aria-label={t('prog.closePool')}>
               ✕
             </button>
           {/if}
@@ -927,7 +928,7 @@
           <input
             class="quick-search-input"
             type="text"
-            placeholder="Quick add…"
+            placeholder={t('prog.quickAdd')}
             value={quickSearch}
             oninput={(e) => updateQuickResults((e.target as HTMLInputElement).value)}
             onfocus={() => { if (quickResults.length > 0) quickDropdownOpen = true; }}
@@ -940,27 +941,27 @@
                 <div class="quick-item">
                   <div class="quick-item-row1">
                     <span class="quick-item-name">{displayAccidental(entry.symbol)}</span>
-                    <span class="quick-item-type">{entry.typeName}</span>
+                    <span class="quick-item-type">{tTypeName(entry.typeName)}</span>
                     {#if entry.topVoicingStr}<span class="quick-item-frets">{entry.topVoicingStr}</span>{/if}
                   </div>
                   <div class="quick-item-actions">
                     <button
                       class="quick-action-btn add"
-                      title="Add to pool"
+                      title={t('diagram.addToPool')}
                       disabled={quickAddingSymbol === entry.symbol}
                       onclick={() => handleQuickAdd(entry)}
-                    >+ Pool</button>
+                    >{t('prog.pool')}</button>
                     <button
                       class="quick-action-btn prog"
-                      title="Add to progression"
+                      title={t('diagram.addToProgression')}
                       disabled={quickAddingSymbol === entry.symbol}
                       onclick={() => handleQuickAddToProgression(entry)}
-                    >+ Progression</button>
+                    >{t('prog.progression')}</button>
                     <button
                       class="quick-action-btn go"
-                      title="Browse voicings"
+                      title={t('prog.browseVoicings')}
                       onclick={() => handleQuickNavigate(entry)}
-                    >Browse</button>
+                    >{t('prog.browse')}</button>
                   </div>
                 </div>
               {/each}
@@ -969,10 +970,10 @@
         </div>
         <div class="quick-nav-buttons">
           {#if onNavigateToFinder}
-            <button class="btn btn-small btn-secondary" onclick={onNavigateToFinder}>Chord Finder</button>
+            <button class="btn btn-small btn-secondary" onclick={onNavigateToFinder}>{t('prog.chordFinder')}</button>
           {/if}
           {#if onNavigateToIdentifier}
-            <button class="btn btn-small btn-secondary" onclick={onNavigateToIdentifier}>Chord Identifier</button>
+            <button class="btn btn-small btn-secondary" onclick={onNavigateToIdentifier}>{t('prog.chordIdentifier')}</button>
           {/if}
         </div>
         <div class="pool-list">
@@ -992,12 +993,12 @@
               <div class="pool-card-actions">
                 <button
                   class="pool-action-btn"
-                  title="Add to progression"
+                  title={t('prog.addToProgressionTitle')}
                   onclick={() => handlePoolPush(entry.key)}
                 >›</button>
                 <button
                   class="pool-action-btn delete"
-                  title="Delete from pool"
+                  title={t('prog.deleteFromPool')}
                   onclick={() => handleDeleteFromPool(entry.key)}
                 >✕</button>
               </div>
@@ -1010,7 +1011,7 @@
       <div class="progression-column">
         <div class="progression-header">
           {#if isMobile}
-            <button class="pool-toggle" onclick={() => poolCollapsed = false} aria-label="Open pool">
+            <button class="pool-toggle" onclick={() => poolCollapsed = false} aria-label={t('prog.openPool')}>
               <span class="pool-toggle-icon">▶</span>
               <span class="pool-toggle-badge">{pool.entries.length}</span>
             </button>
@@ -1022,11 +1023,11 @@
             oninput={(e) => progression.setTitle((e.target as HTMLInputElement).value)}
           />
           {#if selectMode && selectedCells.size > 0}
-            <button class="btn btn-small" onclick={duplicateSelected} disabled={!selectionContiguous} title={selectionContiguous ? '' : 'Select contiguous cells to duplicate'}>
-              Duplicate ({selectedCells.size})
+            <button class="btn btn-small" onclick={duplicateSelected} disabled={!selectionContiguous} title={selectionContiguous ? '' : t('prog.selectContiguous')}>
+              {t('prog.duplicate')} ({selectedCells.size})
             </button>
             <button class="btn btn-small btn-danger" onclick={deleteSelected}>
-              Delete ({selectedCells.size})
+              {t('prog.delete')} ({selectedCells.size})
             </button>
           {/if}
           <div class="header-right-group">
@@ -1035,22 +1036,22 @@
               class:btn-active={selectMode}
               onclick={toggleSelectMode}
             >
-              {selectMode ? 'Cancel' : 'Select'}
+              {selectMode ? t('prog.cancel') : t('prog.select')}
             </button>
             <button
               class="btn btn-small btn-secondary"
               onclick={handleExportPdf}
               disabled={exporting}
-              title="Export as PDF"
+              title={t('prog.exportAsPdf')}
             >
-              {exporting ? 'Exporting…' : 'Export PDF'}
+              {exporting ? t('prog.exporting') : t('prog.exportPdf')}
             </button>
             <button
               class="btn btn-small btn-secondary btn-fixed-share"
               onclick={handleGenerateUrl}
-              title="Copy shareable URL to clipboard"
+              title={t('prog.copyShareUrl')}
             >
-              {urlCopied ? 'Copied!' : 'Share URL'}
+              {urlCopied ? t('prog.copied') : t('prog.shareUrl')}
             </button>
           </div>
         </div>
@@ -1106,7 +1107,7 @@
                       {#if !selectMode}
                         <button
                           class="cell-action-btn"
-                          title="Remove from cell"
+                          title={t('prog.removeFromCell')}
                           onclick={(e) => { e.stopPropagation(); handleReturnFromProgression(idx); }}
                         >✕</button>
                       {/if}
@@ -1119,7 +1120,7 @@
                         <input
                           class="cell-quick-input"
                           type="text"
-                          placeholder="Search chord…"
+                          placeholder={t('prog.searchChord')}
                           value={cellQuickSearch}
                           oninput={(e) => updateCellQuickResults((e.target as HTMLInputElement).value)}
                           onkeydown={handleCellQuickKeydown}
@@ -1129,16 +1130,16 @@
                         {#if cellQuickOpen}
                           <div class="cell-quick-dropdown" use:positionDropdown>
                             {#if cellPoolMatches.length > 0}
-                              <div class="cell-quick-section-title">In pool</div>
+                              <div class="cell-quick-section-title">{t('prog.inPool')}</div>
                               {#each cellPoolMatches as pe (pe.key)}
                                 <div class="cell-quick-item cell-quick-item-row">
                                   <span class="cell-quick-name">{displayAccidental(pe.chordName)}</span>
                                   <span class="cell-quick-frets">{voicingToString(pe.voicing.frets)}</span>
                                   <button
                                     class="quick-action-btn add"
-                                    title="Place in this cell"
+                                    title={t('prog.placeInCell')}
                                     onclick={(e) => { e.stopPropagation(); handleCellPoolPlace(pe, idx); }}
-                                  >Place</button>
+                                  >{t('prog.place')}</button>
                                 </div>
                               {/each}
                             {/if}
@@ -1146,26 +1147,26 @@
                               {#if cellPoolMatches.length > 0}
                                 <div class="cell-quick-section-divider"></div>
                               {/if}
-                              <div class="cell-quick-section-title">All chords</div>
+                              <div class="cell-quick-section-title">{t('prog.allChords')}</div>
                               {#each cellQuickResults as result}
                                 <div class="cell-quick-item">
                                   <div class="cell-quick-row1">
                                     <span class="cell-quick-name">{displayAccidental(result.symbol)}</span>
-                                    <span class="cell-quick-type">{result.typeName}</span>
+                                    <span class="cell-quick-type">{tTypeName(result.typeName)}</span>
                                     {#if result.topVoicingStr}<span class="cell-quick-frets">{result.topVoicingStr}</span>{/if}
                                   </div>
                                   <div class="cell-quick-item-actions">
                                     <button
                                       class="quick-action-btn add"
-                                      title="Add to pool & place here"
+                                      title={t('prog.addToPoolAndPlace')}
                                       disabled={cellQuickAdding === result.symbol}
                                       onclick={(e) => { e.stopPropagation(); handleCellQuickAdd(result, idx); }}
-                                    >+ Place</button>
+                                    >{t('prog.plusPlace')}</button>
                                     <button
                                       class="quick-action-btn go"
-                                      title="Browse voicings"
+                                      title={t('prog.browseVoicings')}
                                       onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; handleQuickNavigate(result); }}
-                                    >Browse</button>
+                                    >{t('prog.browse')}</button>
                                   </div>
                                 </div>
                               {/each}
@@ -1174,10 +1175,10 @@
                         {/if}
                         <div class="cell-quick-nav">
                           {#if onNavigateToFinder}
-                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; onNavigateToFinder?.(); }}>Finder</button>
+                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; onNavigateToFinder?.(); }}>{t('prog.finder')}</button>
                           {/if}
                           {#if onNavigateToIdentifier}
-                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; onNavigateToIdentifier?.(); }}>Identifier</button>
+                            <button class="cell-quick-nav-btn" onclick={(e) => { e.stopPropagation(); progression.pendingCellIdx = idx; onNavigateToIdentifier?.(); }}>{t('prog.identifier')}</button>
                           {/if}
                         </div>
                       </div>
@@ -1188,12 +1189,12 @@
                 {/if}
                 <button
                   class="cell-remove-btn cell-dup-btn"
-                  title="Duplicate cell"
+                  title={t('prog.duplicateCell')}
                   onclick={(e) => { e.stopPropagation(); handleDuplicateCell(idx); }}
                 >⧉</button>
                 <button
                   class="cell-remove-btn"
-                  title="Delete cell"
+                  title={t('prog.deleteCell')}
                   onclick={(e) => { e.stopPropagation(); handleDeleteCell(idx); }}
                 >−</button>
               </div>
@@ -1202,7 +1203,7 @@
               <button
                 class="cell-insert-btn"
                 class:insert-drag-over={dragOverInsertIdx === idx + 1}
-                title="Insert cell"
+                title={t('prog.insertCell')}
                 onclick={(e) => { e.stopPropagation(); handleInsertCell(idx + 1); }}
                 ondragover={(e) => handleInsertDragOver(e, idx + 1)}
                 ondragleave={() => { if (dragOverInsertIdx === idx + 1) dragOverInsertIdx = null; }}
@@ -1215,7 +1216,7 @@
           <div class="grid-cell-wrapper">
             <button
               class="grid-cell add-cell-btn"
-              title="Add one cell"
+              title={t('prog.addOneCell')}
               onclick={() => progression.insertCellAt(progression.cells.length)}
             >
               <span class="add-cell-plus">+</span>
@@ -1224,7 +1225,7 @@
         </div>
 
         <button class="btn btn-secondary add-more-btn" onclick={handleAddMoreCells}>
-          + Add Row
+          {t('prog.addRow')}
         </button>
       </div>
     </div>
