@@ -1519,7 +1519,7 @@
   }
   .pool-card-in-prog-badge {
     display: block;
-    font-size: 9px;
+    font-size: 10px;
     color: var(--accent);
     line-height: 1.2;
   }
@@ -1818,7 +1818,7 @@
   .cell-empty-label {
     color: var(--text-muted);
     font-size: 18px;
-    opacity: 0.3;
+    opacity: 0.45;
   }
 
   .cell-empty {
@@ -1843,15 +1843,15 @@
     background: none;
     border: 1px solid var(--border);
     border-radius: 4px;
-    color: var(--text-muted);
-    font-size: 10px;
-    padding: 2px 6px;
+    color: var(--text);
+    font-size: 11px;
+    padding: 3px 8px;
     cursor: pointer;
     white-space: nowrap;
   }
   .cell-quick-nav-btn:hover {
     background: color-mix(in srgb, var(--accent) 15%, var(--bg));
-    color: var(--text);
+    color: var(--accent);
   }
   .cell-quick-input {
     width: 100%;
@@ -1932,7 +1932,7 @@
   }
   .cell-quick-section-title {
     padding: 4px 8px 2px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -1964,7 +1964,7 @@
     color: var(--accent);
   }
   .cell-play-btn {
-    font-size: 8px;
+    font-size: 9px;
   }
 
   /* Cell remove (delete cell) & duplicate buttons */
@@ -2060,7 +2060,7 @@
   .add-cell-btn {
     border-style: dashed;
     background: transparent;
-    opacity: 0.25;
+    opacity: 0.35;
     transition: opacity 0.15s, border-color 0.15s;
   }
   .add-cell-btn:hover {

@@ -348,7 +348,7 @@
     border: 1.5px solid var(--border);
     background: var(--bg-card);
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     line-height: 1;
     cursor: pointer;

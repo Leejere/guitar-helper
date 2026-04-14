@@ -619,8 +619,8 @@
   }
 
   .fret-selector-name {
-    font-size: 7px;
-    padding: 1px 3px;
+    font-size: 9px;
+    padding: 1px 4px;
     border-radius: 3px;
     background: var(--tag-caged-bg);
     color: var(--tag-caged);
@@ -634,9 +634,8 @@
   }
 
   .fret-selector-count {
-    font-size: 8px;
+    font-size: 10px;
     color: var(--text-muted);
-    opacity: 0.7;
   }
 
   .fretboard-hint {
@@ -715,7 +714,7 @@
     border-radius: 4px;
     background: var(--bg-card);
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -909,7 +908,7 @@
   }
 
   .mobile-selector-col .fret-selector-label {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0;
     white-space: nowrap;
   }
@@ -923,7 +922,7 @@
   }
 
   .mobile-selector-col .fret-selector-count {
-    font-size: 7px;
+    font-size: 9px;
   }
 
   .mobile-back-btn {
