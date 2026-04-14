@@ -323,6 +323,7 @@ button {
   justify-content: center;
   padding: 40px 24px;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .home-header {
@@ -479,6 +480,7 @@ button {
 
   .home-page {
     padding: 24px 16px;
+    justify-content: flex-start;
   }
 
   .home-title {
