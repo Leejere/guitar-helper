@@ -241,6 +241,8 @@ export const cn: Record<string, string> = {
   'prog.removeFromCell': '从格中移除',
   'prog.addToProgressionTitle': '添加到编排',
   'prog.deleteFromPool': '从声位库删除',
+  'prog.confirmDeleteFromPool': '该声位已用于编排，再次点击确认删除',
+  'prog.inProgression': '已编排',
   'prog.finder': '查找',
   'prog.identifier': '识别',
   'prog.addRow': '+ 添加行',

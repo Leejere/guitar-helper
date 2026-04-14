@@ -6,6 +6,7 @@
   import { responsive } from '../lib/responsive.svelte';
   import { fretboardMapState } from '../lib/fretboard-map-state.svelte';
   import { t, tTuning } from '../lib/i18n.svelte';
+  import { playNote } from '../lib/audio';
 
   // Fretboard SVG width (must match Fretboard.svelte defaults: leftPadding=50, fretSpacing=75, fretCount=15, rightPadding=20)
   const FB_SVG_WIDTH = 50 + 16 * 75 + 20; // 1270
@@ -84,6 +85,7 @@
         {mode}
         {rootNote}
         vertical={needsVertical}
+        onNoteClick={(_s, _f, note) => playNote(note)}
       />
     </div>
   </div>

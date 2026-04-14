@@ -241,6 +241,8 @@ export const en: Record<string, string> = {
   'prog.removeFromCell': 'Remove from cell',
   'prog.addToProgressionTitle': 'Add to progression',
   'prog.deleteFromPool': 'Delete from pool',
+  'prog.confirmDeleteFromPool': 'Click again to confirm — this voicing is used in the progression',
+  'prog.inProgression': 'in progression',
   'prog.finder': 'Finder',
   'prog.identifier': 'Identifier',
   'prog.addRow': '+ Add Row',

@@ -11,6 +11,7 @@
   import MiniChordDiagram from './MiniChordDiagram.svelte';
   import ChordDiagram from './ChordDiagram.svelte';
   import { t, tTypeName } from '../lib/i18n.svelte';
+  import { playStrum } from '../lib/audio';
 
   interface Props {
     onNavigateToFinder?: () => void;
@@ -545,6 +546,7 @@
   );
 
   let clearPoolConfirm = $state(false);
+  let deletePoolConfirmKey: string | null = $state(null);
 
   function handleClearPool() {
     if (!clearPoolConfirm) {
@@ -808,6 +810,13 @@
   }
 
   function handleDeleteFromPool(key: string) {
+    const usedInProg = progression.hasPoolKey(key);
+    if (usedInProg && deletePoolConfirmKey !== key) {
+      deletePoolConfirmKey = key;
+      setTimeout(() => { if (deletePoolConfirmKey === key) deletePoolConfirmKey = null; }, 3000);
+      return;
+    }
+    deletePoolConfirmKey = null;
     // Also clear from progression
     for (let i = 0; i < progression.cells.length; i++) {
       if (progression.cells[i].poolKey === key) {
@@ -978,8 +987,11 @@
         </div>
         <div class="pool-list">
           {#each sortedPool as entry (entry.key)}
+            {@const inProg = progression.hasPoolKey(entry.key)}
+            {@const confirmingDelete = deletePoolConfirmKey === entry.key}
             <div
               class="pool-card"
+              class:pool-card-in-prog={inProg}
               draggable={!isMobile}
               ondragstart={(e) => handlePoolDragStart(e, entry)}
               ondragend={handleDragEnd}
@@ -989,6 +1001,7 @@
               </div>
               <div class="pool-card-info">
                 <span class="pool-card-name">{displayAccidental(entry.chordName)}</span>
+                {#if inProg}<span class="pool-card-in-prog-badge">{t('prog.inProgression')}</span>{/if}
               </div>
               <div class="pool-card-actions">
                 <button
@@ -997,10 +1010,10 @@
                   onclick={() => handlePoolPush(entry.key)}
                 >›</button>
                 <button
-                  class="pool-action-btn delete"
-                  title={t('prog.deleteFromPool')}
+                  class="pool-action-btn delete {confirmingDelete ? 'confirming' : ''}"
+                  title={confirmingDelete ? t('prog.confirmDeleteFromPool') : t('prog.deleteFromPool')}
                   onclick={() => handleDeleteFromPool(entry.key)}
-                >✕</button>
+                >{confirmingDelete ? '!!' : '✕'}</button>
               </div>
             </div>
           {/each}
@@ -1105,11 +1118,18 @@
                     <div class="cell-info">
                       <span class="cell-name">{displayAccidental(entry.chordName)}</span>
                       {#if !selectMode}
-                        <button
-                          class="cell-action-btn"
-                          title={t('prog.removeFromCell')}
-                          onclick={(e) => { e.stopPropagation(); handleReturnFromProgression(idx); }}
-                        >✕</button>
+                        <div class="cell-actions">
+                          <button
+                            class="cell-action-btn cell-play-btn"
+                            title={t('common.play')}
+                            onclick={(e) => { e.stopPropagation(); playStrum(entry.voicing.notes); }}
+                          >▶</button>
+                          <button
+                            class="cell-action-btn"
+                            title={t('prog.removeFromCell')}
+                            onclick={(e) => { e.stopPropagation(); handleReturnFromProgression(idx); }}
+                          >✕</button>
+                        </div>
                       {/if}
                     </div>
                   </div>
@@ -1479,6 +1499,10 @@
   .pool-card:active {
     cursor: grabbing;
   }
+  .pool-card-in-prog {
+    border-color: var(--accent);
+    border-style: dashed;
+  }
   .pool-card-diagram {
     flex-shrink: 0;
   }
@@ -1492,6 +1516,12 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .pool-card-in-prog-badge {
+    display: block;
+    font-size: 9px;
+    color: var(--accent);
+    line-height: 1.2;
   }
   .pool-card-actions {
     display: flex;
@@ -1522,6 +1552,14 @@
   .pool-action-btn.delete:hover {
     border-color: var(--error);
     color: var(--error);
+  }
+  .pool-action-btn.delete.confirming {
+    border-color: var(--error);
+    color: var(--error);
+    background: var(--error);
+    color: white;
+    font-weight: 700;
+    font-size: 11px;
   }
 
   /* Mobile pool toggle */
@@ -1764,6 +1802,10 @@
     gap: 4px;
     min-width: 0;
   }
+  .cell-actions {
+    display: flex;
+    gap: 4px;
+  }
   .cell-name {
     font-size: 13px;
     font-weight: 600;
@@ -1920,6 +1962,9 @@
   .cell-action-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
+  }
+  .cell-play-btn {
+    font-size: 8px;
   }
 
   /* Cell remove (delete cell) & duplicate buttons */

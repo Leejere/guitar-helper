@@ -41,7 +41,7 @@ description: "ProgressionBuilder component for guitar-app (~2000 lines). USE FOR
 | Multi-select | `selectMode`, `selectedCells` (Set), `sweeping`, `swept`, `sweepStartIdx` | Sweep/select |
 | Click-to-move | `moveFromIdx` | Highlighted source cell |
 | Drag & drop | `dragSource`, `dragOverIdx`, `dragOverInsertIdx`, `dragOverZone` | Drag state |
-| Pool mgmt | `sortedPool` ($derived), `clearPoolConfirm` | Sorted entries, clear confirmation |
+| Pool mgmt | `sortedPool` ($derived), `clearPoolConfirm`, `deletePoolConfirmKey` | Sorted entries, clear/delete confirmation |
 
 ## Two Quick-Add Systems
 
@@ -84,6 +84,8 @@ Grid columns: 4 (desktop) / 2 (mobile) / 6 (PDF export)
 - Else: "+" placeholder label
 
 ### Cell Action Buttons (hover-visible)
+- Play (▶) — in `.cell-actions` row, plays voicing via `playStrum(entry.voicing.notes)`
+- Remove (✕) — in `.cell-actions` row, returns voicing from cell
 - Duplicate (⧉) — top-right corner
 - Delete (−) — offset 18px left of duplicate
 - Insert gutter (+) — right edge, circular button between cells during drag
@@ -129,7 +131,9 @@ Full details: [pdf-export.md](./references/pdf-export.md)
 ## Pool Management
 
 - `sortedPool`: $derived — sorts by `chordName` alphabetically, then by `voicing.rank`
+- Pool cards used in progression get `.pool-card-in-prog` class (dashed accent border) and "in progression" badge
 - `clearPoolConfirm`: 2-click confirmation pattern (auto-resets after 3s)
+- `deletePoolConfirmKey`: per-entry 2-click confirmation for entries used in progression (auto-resets 3s); delete button turns red with "!!" text
 - Clear returns all progression cells with poolKey back to empty first
 
 ## Keyboard

@@ -15,7 +15,7 @@
     compact?: boolean;
     leftPaddingOverride?: number;
     highlightNotes?: string[];
-    onNoteClick?: (stringIdx: number, fret: number) => void;
+    onNoteClick?: (stringIdx: number, fret: number, noteName: string) => void;
     filterPositions?: { string: number; fret: number }[];
     onPositionClick?: (string: number, fret: number) => void;
     onFretSelect?: (fret: number) => void;
@@ -146,7 +146,7 @@
   }
 
   function handleNoteClick(stringIdx: number, fret: number) {
-    if (onNoteClick) onNoteClick(stringIdx, fret);
+    if (onNoteClick) onNoteClick(stringIdx, fret, getNoteAt(stringIdx, fret));
   }
 
   function isFiltered(stringIdx: number, fret: number): boolean {

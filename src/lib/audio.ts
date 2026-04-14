@@ -85,6 +85,24 @@ export async function playStrum(notes: string[], downStrum = true) {
 }
 
 /**
+ * Play a single note with a short duration.
+ */
+export async function playNote(note: string) {
+  const ready = ensureStarted();
+  const s = ensureSynth();
+
+  try {
+    Tone.Frequency(note).toFrequency();
+  } catch {
+    return;
+  }
+
+  await ready;
+  s.releaseAll();
+  s.triggerAttackRelease(note, '8n');
+}
+
+/**
  * Dispose of the synth (cleanup).
  */
 export function dispose() {
