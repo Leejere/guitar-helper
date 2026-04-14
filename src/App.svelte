@@ -134,6 +134,109 @@
       {#each tileKeys as tile}
         <button class="home-tile" onclick={() => activeTab = tile.id}>
           <h2>{t(tile.titleKey)}</h2>
+          <div class="tile-diagram">
+            {#if tile.id === 'map'}
+              <!-- Mini fretboard with C major scale dots -->
+              <svg viewBox="0 0 230 78" fill="none">
+                <line x1="28" y1="7" x2="220" y2="7" stroke="var(--string-color)" stroke-width="1.2" opacity="0.3"/>
+                <line x1="28" y1="20" x2="220" y2="20" stroke="var(--string-color)" stroke-width="1.1" opacity="0.3"/>
+                <line x1="28" y1="33" x2="220" y2="33" stroke="var(--string-color)" stroke-width="1" opacity="0.3"/>
+                <line x1="28" y1="46" x2="220" y2="46" stroke="var(--string-color)" stroke-width="0.9" opacity="0.3"/>
+                <line x1="28" y1="59" x2="220" y2="59" stroke="var(--string-color)" stroke-width="0.8" opacity="0.3"/>
+                <line x1="28" y1="72" x2="220" y2="72" stroke="var(--string-color)" stroke-width="0.7" opacity="0.3"/>
+                <line x1="28" y1="3" x2="28" y2="76" stroke="var(--text-muted)" stroke-width="2"/>
+                <line x1="76" y1="3" x2="76" y2="76" stroke="var(--border)" stroke-width="0.6"/>
+                <line x1="124" y1="3" x2="124" y2="76" stroke="var(--border)" stroke-width="0.6"/>
+                <line x1="172" y1="3" x2="172" y2="76" stroke="var(--border)" stroke-width="0.6"/>
+                <line x1="220" y1="3" x2="220" y2="76" stroke="var(--border)" stroke-width="0.6"/>
+                <circle cx="148" cy="20" r="7" fill="var(--root-bg)"/>
+                <circle cx="52" cy="59" r="7" fill="var(--root-bg)"/>
+                <circle cx="14" cy="7" r="6" fill="var(--accent)"/>
+                <circle cx="148" cy="7" r="6" fill="var(--accent)"/>
+                <circle cx="100" cy="20" r="6" fill="var(--accent)"/>
+                <circle cx="100" cy="33" r="6" fill="var(--accent)"/>
+                <circle cx="14" cy="46" r="6" fill="var(--accent)"/>
+                <circle cx="100" cy="46" r="6" fill="var(--accent)"/>
+                <circle cx="14" cy="72" r="6" fill="var(--accent)"/>
+                <circle cx="148" cy="72" r="6" fill="var(--accent)"/>
+                <circle cx="52" cy="7" r="5" fill="var(--accent)" opacity="0.4"/>
+                <circle cx="148" cy="33" r="5" fill="var(--accent)" opacity="0.4"/>
+                <circle cx="52" cy="72" r="5" fill="var(--accent)" opacity="0.4"/>
+              </svg>
+            {:else if tile.id === 'finder'}
+              <!-- Chord name → voicing diagram -->
+              <svg viewBox="0 0 200 58" fill="none">
+                <rect x="5" y="14" width="48" height="30" rx="8" fill="var(--accent)" opacity="0.15"/>
+                <text x="29" y="30" text-anchor="middle" dominant-baseline="central" font-size="20" fill="var(--accent)" font-weight="700" font-family="'Work Sans', system-ui, sans-serif">Am</text>
+                <line x1="64" y1="30" x2="92" y2="30" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round"/>
+                <polyline points="88,25 95,30 88,35" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="110" y1="10" x2="110" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="122" y1="10" x2="122" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="134" y1="10" x2="134" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="146" y1="10" x2="146" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="158" y1="10" x2="158" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="170" y1="10" x2="170" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="108" y1="10" x2="172" y2="10" stroke="var(--text-muted)" stroke-width="2"/>
+                <line x1="108" y1="24" x2="172" y2="24" stroke="var(--border)" stroke-width="0.6"/>
+                <line x1="108" y1="38" x2="172" y2="38" stroke="var(--border)" stroke-width="0.6"/>
+                <line x1="108" y1="52" x2="172" y2="52" stroke="var(--border)" stroke-width="0.6"/>
+                <text x="110" y="6" text-anchor="middle" font-size="7" fill="var(--text-muted)" font-weight="700" font-family="system-ui">×</text>
+                <circle cx="122" cy="4" r="2.5" fill="none" stroke="var(--text-muted)" stroke-width="1"/>
+                <circle cx="134" cy="31" r="4.5" fill="var(--accent)"/>
+                <circle cx="146" cy="31" r="4.5" fill="var(--accent)"/>
+                <circle cx="158" cy="17" r="4.5" fill="var(--accent)"/>
+                <circle cx="170" cy="4" r="2.5" fill="none" stroke="var(--text-muted)" stroke-width="1"/>
+              </svg>
+            {:else if tile.id === 'identifier'}
+              <!-- Voicing diagram → chord name -->
+              <svg viewBox="0 0 200 58" fill="none">
+                <line x1="18" y1="10" x2="18" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="30" y1="10" x2="30" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="42" y1="10" x2="42" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="54" y1="10" x2="54" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="66" y1="10" x2="66" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="78" y1="10" x2="78" y2="54" stroke="var(--string-color)" stroke-width="0.6" opacity="0.4"/>
+                <line x1="16" y1="10" x2="80" y2="10" stroke="var(--text-muted)" stroke-width="2"/>
+                <line x1="16" y1="24" x2="80" y2="24" stroke="var(--border)" stroke-width="0.6"/>
+                <line x1="16" y1="38" x2="80" y2="38" stroke="var(--border)" stroke-width="0.6"/>
+                <line x1="16" y1="52" x2="80" y2="52" stroke="var(--border)" stroke-width="0.6"/>
+                <rect x="16" y="14.5" width="64" height="5" rx="2.5" fill="var(--accent)" opacity="0.7"/>
+                <circle cx="30" cy="45" r="4.5" fill="var(--accent)"/>
+                <circle cx="42" cy="45" r="4.5" fill="var(--accent)"/>
+                <circle cx="54" cy="31" r="4.5" fill="var(--accent)"/>
+                <line x1="98" y1="30" x2="126" y2="30" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round"/>
+                <polyline points="122,25 129,30 122,35" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="140" y="14" width="50" height="30" rx="8" fill="var(--accent)" opacity="0.15"/>
+                <text x="165" y="30" text-anchor="middle" dominant-baseline="central" font-size="20" fill="var(--accent)" font-weight="700" font-family="'Work Sans', system-ui, sans-serif">F</text>
+              </svg>
+            {:else if tile.id === 'shapes'}
+              <!-- CAGED shape badges -->
+              <svg viewBox="0 0 230 36" fill="none">
+                <rect x="5" y="3" width="36" height="30" rx="6" fill="var(--tag-caged)" opacity="0.18"/>
+                <text x="23" y="19" text-anchor="middle" dominant-baseline="central" font-size="16" fill="var(--tag-caged)" font-weight="700" font-family="'Work Sans', system-ui, sans-serif">C</text>
+                <rect x="49" y="3" width="36" height="30" rx="6" fill="var(--accent)" opacity="0.18"/>
+                <text x="67" y="19" text-anchor="middle" dominant-baseline="central" font-size="16" fill="var(--accent)" font-weight="700" font-family="'Work Sans', system-ui, sans-serif">A</text>
+                <rect x="93" y="3" width="36" height="30" rx="6" fill="var(--success)" opacity="0.18"/>
+                <text x="111" y="19" text-anchor="middle" dominant-baseline="central" font-size="16" fill="var(--success)" font-weight="700" font-family="'Work Sans', system-ui, sans-serif">G</text>
+                <rect x="137" y="3" width="36" height="30" rx="6" fill="var(--tag-barre)" opacity="0.18"/>
+                <text x="155" y="19" text-anchor="middle" dominant-baseline="central" font-size="16" fill="var(--tag-barre)" font-weight="700" font-family="'Work Sans', system-ui, sans-serif">E</text>
+                <rect x="181" y="3" width="36" height="30" rx="6" fill="var(--tag-other)" opacity="0.25"/>
+                <text x="199" y="19" text-anchor="middle" dominant-baseline="central" font-size="16" fill="var(--tag-other)" font-weight="700" font-family="'Work Sans', system-ui, sans-serif">D</text>
+              </svg>
+            {:else if tile.id === 'progression'}
+              <!-- Chord progression cells -->
+              <svg viewBox="0 0 220 34" fill="none">
+                <rect x="2" y="2" width="50" height="30" rx="5" stroke="var(--accent)" stroke-width="1" opacity="0.6"/>
+                <text x="27" y="18" text-anchor="middle" dominant-baseline="central" font-size="11" fill="var(--accent)" font-weight="600" font-family="'Work Sans', system-ui, sans-serif">Am</text>
+                <rect x="57" y="2" width="50" height="30" rx="5" stroke="var(--accent)" stroke-width="1" opacity="0.6"/>
+                <text x="82" y="18" text-anchor="middle" dominant-baseline="central" font-size="11" fill="var(--accent)" font-weight="600" font-family="'Work Sans', system-ui, sans-serif">F</text>
+                <rect x="112" y="2" width="50" height="30" rx="5" stroke="var(--accent)" stroke-width="1" opacity="0.6"/>
+                <text x="137" y="18" text-anchor="middle" dominant-baseline="central" font-size="11" fill="var(--accent)" font-weight="600" font-family="'Work Sans', system-ui, sans-serif">C</text>
+                <rect x="167" y="2" width="50" height="30" rx="5" stroke="var(--accent)" stroke-width="1" opacity="0.6"/>
+                <text x="192" y="18" text-anchor="middle" dominant-baseline="central" font-size="11" fill="var(--accent)" font-weight="600" font-family="'Work Sans', system-ui, sans-serif">G</text>
+              </svg>
+            {/if}
+          </div>
           <p>{t(tile.descKey)}</p>
         </button>
       {/each}

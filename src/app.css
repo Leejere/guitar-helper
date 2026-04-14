@@ -379,6 +379,17 @@ button {
   line-height: 1.5;
 }
 
+.tile-diagram {
+  margin: 10px 0 8px;
+  line-height: 0;
+}
+
+.tile-diagram svg {
+  width: 90%;
+  max-height: 72px;
+  overflow: visible;
+}
+
 .section-title {
   font-size: 18px;
   font-weight: 600;
