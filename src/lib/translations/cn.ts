@@ -57,9 +57,9 @@ export const cn: Record<string, string> = {
   'rel.7th': '七',
   'rel.maj7': '大七',
   'rel.m7': '小七',
-  'rel.sus4': 'sus4',
-  'rel.sus2': 'sus2',
-  'rel.add9': 'add9',
+  'rel.sus4': '挂四',
+  'rel.sus2': '挂二',
+  'rel.add9': '加九',
   'rel.9th': '九',
   'rel.m9': '小九',
   'rel.maj9': '大九',
@@ -70,7 +70,7 @@ export const cn: Record<string, string> = {
   'rel.6th': '六',
   'rel.m6': '小六',
   'rel.5': '强力',
-  'rel.7sus4': '7sus4',
+  'rel.7sus4': '属挂四',
 
   // Chord type names
   'type.major': '大三和弦',

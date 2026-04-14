@@ -883,7 +883,7 @@
         <MiniChordDiagram voicing={item.bestVoicing} tuning={selectedTuning} />
         <span class="fret-selector-tags">
           {#each item.labels.slice(0, 2) as lbl}
-            <span class="fret-selector-tag">{lbl}</span>
+            <span class="fret-selector-tag">{tShapeLabel(lbl)}</span>
           {/each}
           {#if item.labels.length > 2}
             <span class="fret-selector-tag">+{item.labels.length - 2}</span>
@@ -898,7 +898,7 @@
           <span class="fret-selector-label">{item.positionGroup === 'Open position' ? t('common.open') : t('common.fretN', item.fretNumber)}</span>
           <span class="fret-selector-tags">
             {#each item.labels.slice(0, 2) as lbl}
-              <span class="fret-selector-tag">{lbl}</span>
+              <span class="fret-selector-tag">{tShapeLabel(lbl)}</span>
             {/each}
             {#if item.labels.length > 2}
               <span class="fret-selector-tag">+{item.labels.length - 2}</span>
@@ -1028,7 +1028,7 @@
             <div class="voicing-toolbar no-print">
               <ButtonFilter
                 label={t('common.shape')}
-                options={availableCaged.map(l => ({ value: l, label: l === 'Other' ? t('finder.otherShape') : l }))}
+                options={availableCaged.map(l => ({ value: l, label: l === 'Other' ? t('finder.otherShape') : tShapeLabel(l) }))}
                 selected={filterCaged}
                 onchange={(v) => filterCaged = v}
               />
@@ -1053,7 +1053,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="position-group-header" onclick={() => toggleGroup(group.label)}>
                   <span class="group-chevron" class:collapsed={collapsedGroups.has(group.label)}>&#9662;</span>
-                  {group.label} <span class="group-count">({group.items.length})</span>
+                  {tPosition(group.label)} <span class="group-count">({group.items.length})</span>
                 </div>
               {/if}
               {#if !group.label || !collapsedGroups.has(group.label)}
@@ -1074,9 +1074,9 @@
                       {#if onNavigateToShape}
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
-                        <span class="tag tag-caged tag-clickable" onclick={(e) => { e.stopPropagation(); onNavigateToShape?.(v.caged!.shape, v.caged!.position); }}>{v.caged.label}</span>
+                        <span class="tag tag-caged tag-clickable" onclick={(e) => { e.stopPropagation(); onNavigateToShape?.(v.caged!.shape, v.caged!.position); }}>{tShapeLabel(v.caged.label)}</span>
                       {:else}
-                        <span class="tag tag-caged">{v.caged.label}</span>
+                        <span class="tag tag-caged">{tShapeLabel(v.caged.label)}</span>
                       {/if}
                     {:else}
                       <span class="tag tag-other">{t('finder.otherShape')}</span>
@@ -1134,9 +1134,9 @@
                       {#if onNavigateToShape}
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
-                        <span class="tag tag-caged tag-clickable" onclick={(e) => { e.stopPropagation(); onNavigateToShape?.(v.caged!.shape, v.caged!.position); }}>{v.caged.label}</span>
+                        <span class="tag tag-caged tag-clickable" onclick={(e) => { e.stopPropagation(); onNavigateToShape?.(v.caged!.shape, v.caged!.position); }}>{tShapeLabel(v.caged.label)}</span>
                       {:else}
-                        <span class="tag tag-caged">{v.caged.label}</span>
+                        <span class="tag tag-caged">{tShapeLabel(v.caged.label)}</span>
                       {/if}
                     {:else}
                       <span class="tag tag-other">{t('finder.otherShape')}</span>
