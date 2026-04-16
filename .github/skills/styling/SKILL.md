@@ -159,4 +159,4 @@ Fretboard and chord diagrams use CSS variables directly in SVG attributes:
 4. **Border-radius**: 6px for controls, 8px for cards
 5. **Font-weight**: 600 for buttons/headings, 400 for body text
 6. **Fixed-width toggle buttons**: Any button whose label changes between states (e.g., "+ Add to pool" / "− Delete from pool") must have `min-width` set to accommodate the longest label, plus `justify-content: center`. This prevents layout shift when the text toggles. Example: `.voicing-action-btn { min-width: 105px; justify-content: center; }`
-7. **Scrollbar at screen edge**: When a page-level container scrolls, the scrollbar must sit flush against the right edge of the viewport. Apply horizontal padding to inner content elements (header, grid, etc.) rather than the scrolling container itself.
+7. **Scrollbar at screen edge**: Scroll containers must extend rightward to the viewport edge using `margin-right: calc(-1 * var(--scroll-extend)); padding-right: calc(var(--scroll-extend) + Npx)`. Their ancestor chain must use `overflow-y: clip; overflow-x: visible` (not `overflow: hidden`). See the **layout** skill for the full architecture.

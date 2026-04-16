@@ -61,9 +61,10 @@ Internationalization system for guitar-app. Path-based locale with reactive Svel
 ## Font Strategy
 
 - **English**: Work Sans (400/500/600/700)
+- **Musical accidentals** (♭♮♯, U+266D-266F): `'Music Accidentals'` @font-face in app.css — sources from system fonts (Helvetica Neue, Arial, Segoe UI Symbol, DejaVu Sans) to get Latin-compatible metrics. Without this, these symbols fall through to Noto Sans SC and render at CJK width with gaps/misalignment.
 - **Chinese**: Noto Sans SC (400/500/600/700)
-- Both loaded via Google Fonts in `index.html`
-- Font stack: `'Work Sans', 'Noto Sans SC', system-ui, -apple-system, sans-serif`
+- Both text fonts loaded via Google Fonts in `index.html`
+- Font stack: `'Work Sans', 'Music Accidentals', 'Noto Sans SC', system-ui, -apple-system, sans-serif`
 
 ## Locale Toggle
 

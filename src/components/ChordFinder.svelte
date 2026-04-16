@@ -1210,7 +1210,8 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: clip;
+    overflow-x: visible;
   }
 
   .page-root > :global(.controls) {
@@ -1232,6 +1233,8 @@
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
+    margin-right: calc(-1 * var(--scroll-extend));
+    padding-right: var(--scroll-extend);
   }
 
   .voicings-scroll-area.tablet {
@@ -1275,7 +1278,8 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
-    padding-right: 24px;
+    padding-right: calc(var(--scroll-extend) + 24px);
+    margin-right: calc(-1 * var(--scroll-extend));
   }
 
   .browse-header {

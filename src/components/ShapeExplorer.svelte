@@ -478,7 +478,8 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: clip;
+    overflow-x: visible;
   }
 
   .filter-bar {
@@ -502,6 +503,8 @@
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
+    margin-right: calc(-1 * var(--scroll-extend));
+    padding-right: var(--scroll-extend);
   }
 
   .explorer-scroll-area.tablet {

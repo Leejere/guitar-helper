@@ -34,7 +34,9 @@
   --tag-other-bg: rgba(138,138,122,0.12);
   --tag-other-border: rgba(138,138,122,0.3);
 
-  font-family: 'Work Sans', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  --scroll-extend: max(0px, calc(50vw - 700px));
+
+  font-family: 'Work Sans', 'Music Accidentals', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   color: var(--text);
@@ -43,6 +45,16 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Musical accidental symbols (♭♮♯) — render from system fonts with Latin metrics
+   instead of falling through to Noto Sans SC (CJK metrics cause gaps/misalignment) */
+@font-face {
+  font-family: 'Music Accidentals';
+  src: local('Helvetica Neue'), local('Helvetica'), local('Arial'),
+       local('Segoe UI Symbol'), local('DejaVu Sans');
+  unicode-range: U+266D-266F;
+  font-weight: 100 900;
 }
 
 * {
@@ -64,7 +76,8 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden;
+  overflow-y: clip;
+  overflow-x: visible;
 }
 
 .tab-bar {
@@ -321,9 +334,11 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 0;
+  padding: 20px 0;
   min-height: 0;
   overflow-y: auto;
+  margin-right: calc(-1 * var(--scroll-extend));
+  padding-right: var(--scroll-extend);
 }
 
 .home-header {
@@ -482,7 +497,7 @@ button {
   }
 
   .home-page {
-    padding: 24px 0;
+    padding: 16px 0;
     justify-content: flex-start;
   }
 

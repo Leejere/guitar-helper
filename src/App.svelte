@@ -301,7 +301,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: clip;
+    overflow-x: visible;
     min-height: 0;
     padding-top: 16px;
   }

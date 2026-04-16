@@ -8,9 +8,60 @@ description: "Layout and responsive design system for guitar-app. USE FOR: addin
 ## Overall Strategy
 
 - **Flex column** main layout: `#app` is `display: flex; flex-direction: column`
-- **Max width**: `1400px` with `margin: 0 auto`
+- **Max width**: `1400px` with `margin: 0 auto` — content stays centered and constrained
+- **Scrollbar extension**: scroll containers extend rightward via negative margin so scrollbars reach the viewport edge (see below)
 - **Dual detection**: CSS `@media` queries for styling + JS `$derived` reactive state for conditional rendering
 - **Central tracker**: [src/lib/responsive.svelte.ts](src/lib/responsive.svelte.ts) — singleton tracking `window.innerWidth`, updates on resize
+
+## Scrollbar Extension Architecture
+
+**Problem**: `#app { max-width: 1400px; margin: 0 auto }` centers content but pushes scrollbars inward from the viewport edge on wide screens.
+
+**Solution**: Each scroll container extends rightward past `#app`'s boundary using negative margin + matching padding. The entire ancestor chain from `#app` down uses `overflow-y: clip; overflow-x: visible` so the extension isn't clipped.
+
+### CSS Variable
+```css
+:root {
+  --scroll-extend: max(0px, calc(50vw - 700px));
+}
+```
+`700 = max-width / 2` (with `border-box`, `max-width: 1400px` includes the 24px left padding). On viewports ≤ 1400px, this evaluates to 0 — no extension, no effect.
+
+### Extension Pattern (applied to every scroll container)
+```css
+.scroll-area {
+  margin-right: calc(-1 * var(--scroll-extend));
+  padding-right: var(--scroll-extend);  /* or calc(var(--scroll-extend) + Npx) if existing padding */
+}
+```
+
+### Overflow Chain
+Every ancestor between `#app` and the scroll container must use `overflow-y: clip; overflow-x: visible` (NOT `overflow: hidden`) so the rightward extension is visible:
+```
+#app (overflow-y: clip, overflow-x: visible)
+ └─ .page-content (overflow-y: clip, overflow-x: visible)   [App.svelte]
+     └─ .page-root (overflow-y: clip, overflow-x: visible)  [per component]
+         └─ scroll-area (overflow-y: auto — the actual scroller)
+```
+`overflow-y: clip` + `overflow-x: visible` works because CSS spec allows `clip` to coexist with `visible` (unlike `hidden` + `visible` which forces both to `auto`). Supported: Chrome 90+, Firefox 81+, Safari 16+.
+
+### Extended Scroll Containers
+| Container | Component | Existing pad-right | Extension |
+|---|---|---|---|
+| `.home-page` | app.css | `0` | `var(--scroll-extend)` |
+| `.scroll-area` | FretboardMap | `0` | `var(--scroll-extend)` |
+| `.browse-scroll-area` | ChordFinder | `24px` | `calc(var(--scroll-extend) + 24px)` |
+| `.voicings-scroll-area` | ChordFinder | `0` | `var(--scroll-extend)` |
+| `.scroll-area` | ChordIdentifier | `0` | `var(--scroll-extend)` |
+| `.explorer-scroll-area` | ShapeExplorer | `0` | `var(--scroll-extend)` |
+| `.progression-grid` | ProgressionBuilder | `12px` | `calc(var(--scroll-extend) + 12px)` |
+
+### Rules
+1. **Never add `max-width` to a scroll container** — the extension compensates instead
+2. **Never use `overflow: hidden` on the ancestor chain** — use `overflow-y: clip; overflow-x: visible`
+3. **`.pool-column` keeps `overflow: hidden`** — it's a left sidebar, not in the extension path
+4. **Tablet variants not extended** — viewport is ≤ 1354px where `--scroll-extend` = 0
+5. **If `#app` max-width or padding-left changes**, recalculate the 700 constant in `--scroll-extend`
 
 ## Breakpoints
 
@@ -90,7 +141,7 @@ grid-template-columns: 1fr; max-width: 400px;              /* mobile */
 |---------|---------|--------|
 | `#app` container | `16px 0 0 24px` | `10px 0 0 10px` |
 | Content right | `24px` | `10px` |
-| Home page | `40px 24px` | `24px 16px` |
+| Home page | `20px 0` + scroll-extend | `16px 0` |
 | Grid gap (chords) | `16px` | `10px` |
 | Grid gap (home) | `20px` | `20px` (unchanged) |
 
@@ -115,3 +166,5 @@ The fretboard SVG width is calculated as: `FB_SVG_WIDTH = 75 + (15+1)*75 + 20 = 
 2. **CSS breakpoints** for pure visual changes; **JS `$derived`** for conditional rendering (show/hide components)
 3. **class:mobile={isMobile}** pattern to toggle CSS classes based on JS state
 4. **Pool overlay on mobile**: position:absolute with box-shadow, toggled via `poolCollapsed` state
+5. **Scroll containers extend right** via `margin-right: calc(-1 * var(--scroll-extend)); padding-right: ...` — never constrain scroll containers with `max-width`
+6. **Ancestor overflow chain**: `overflow-y: clip; overflow-x: visible` from `#app` down to scroll container parent — never `overflow: hidden` on these ancestors

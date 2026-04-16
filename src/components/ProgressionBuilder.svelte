@@ -1257,7 +1257,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: clip;
+    overflow-x: visible;
     min-height: 0;
   }
 
@@ -1422,7 +1423,8 @@
   .builder-layout {
     flex: 1;
     display: flex;
-    overflow: hidden;
+    overflow-y: clip;
+    overflow-x: visible;
     min-height: 0;
     position: relative;
   }
@@ -1612,7 +1614,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: clip;
+    overflow-x: visible;
     min-width: 0;
   }
 
@@ -1687,6 +1690,8 @@
     flex: 1;
     overflow-y: auto;
     padding: 12px;
+    padding-right: calc(var(--scroll-extend) + 12px);
+    margin-right: calc(-1 * var(--scroll-extend));
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0;
